@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -55,12 +56,13 @@ public class ProjectActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Ui.applyAnimeBg(this);
         projectDir = new File(getIntent().getStringExtra("project_dir"));
         info = ProjectInfo.fromJson(projectDir);
         currentDir = projectDir;
 
         LinearLayout root = Ui.vertical(this);
-        root.setBackgroundColor(Ui.BG);
+        root.setBackgroundColor(Ui.BG_OVERLAY);
         root.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 10));
 
         // 顶部：返回 + 名称 + 设置
@@ -321,41 +323,50 @@ public class ProjectActivity extends Activity {
         });
     }
 
+    private Handler compileHandler = new Handler();
+
     private void doCompile() {
+        // 启动前台编译服务
+        info.apiLevel = new com.et.apkworkshop.util.AppSettings(this).getApiLevel();
+        try { info.save(); } catch (Exception ignored) {}
+
+        Intent svc = new Intent(this, WorkService.class);
+        svc.setAction(WorkService.ACTION_COMPILE);
+        svc.putExtra(WorkService.EXTRA_PROJECT_DIR, projectDir.getAbsolutePath());
+        svc.putExtra(WorkService.EXTRA_API_LEVEL, info.apiLevel);
+        if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc); else startService(svc);
+
         final ProgressDialog pd = new ProgressDialog(this);
-        pd.setTitle("编译打包");
-        pd.setMessage("开始 ...");
+        pd.setTitle("编译打包（前台服务）");
+        pd.setMessage("开始编译…通知栏可见进度");
         pd.setCancelable(false);
+        pd.setButton(DialogInterface.BUTTON_NEGATIVE, "后台运行", new DialogInterface.OnClickListener() {
+            @Override public void onClick(DialogInterface d, int w) { pd.dismiss(); }
+        });
         pd.show();
-        new Thread(new Runnable() {
+
+        compileHandler.postDelayed(new Runnable() {
             @Override public void run() {
-                try {
-                    info.apiLevel = new com.et.apkworkshop.util.AppSettings(ProjectActivity.this).getApiLevel();
-                    ApkEngine.Progress prog = new ApkEngine.Progress() {
-                        @Override public void on(String m) {
-                            runOnUiThread(new Runnable() {
-                                @Override public void run() { pd.setMessage(m); }
-                            });
-                        }
-                    };
-                    final File out = ApkEngine.compile(info, prog);
-                    runOnUiThread(new Runnable() {
-                        @Override public void run() {
-                            pd.dismiss();
-                            showBuildResult(out);
-                        }
-                    });
-                } catch (final Exception e) {
-                    runOnUiThread(new Runnable() {
-                        @Override public void run() {
-                            pd.dismiss();
-                            Ui.alert(ProjectActivity.this, "编译失败", e.getMessage()
-                                    + "\n\n提示：可复制报错内容到 AI 助手中，让 AI 帮忙修复 smali 代码。");
-                        }
-                    });
+                WorkState ws = WorkState.get();
+                if (ws.isRunning()) {
+                    pd.setMessage(ws.message + " (" + ws.progress + "%)");
+                    compileHandler.postDelayed(this, 500);
+                } else if (ws.isDone()) {
+                    pd.dismiss();
+                    info = ProjectInfo.fromJson(projectDir);
+                    if (ws.resultPath != null) showBuildResult(new File(ws.resultPath));
+                    else Ui.toast(ProjectActivity.this, "编译完成");
+                    reload();
+                } else if (ws.isError()) {
+                    pd.dismiss();
+                    Ui.alert(ProjectActivity.this, "编译失败",
+                            (ws.error != null ? ws.error : "未知错误")
+                            + "\n\n提示：可复制报错到 AI 助手，让 AI 帮忙修复 smali。");
+                } else {
+                    compileHandler.postDelayed(this, 500);
                 }
             }
-        }).start();
+        }, 500);
     }
 
     private void showBuildResult(File out) {
@@ -377,7 +388,7 @@ public class ProjectActivity extends Activity {
     private Uri providerUri(File f) {
         String rel;
         try {
-            String root = getFilesDir().getCanonicalPath();
+            String root = com.et.apkworkshop.util.Storage.getRoot().getCanonicalPath();
             String p = f.getCanonicalPath();
             if (p.startsWith(root + File.separator)) rel = p.substring(root.length() + 1);
             else rel = "share_" + System.currentTimeMillis() + ".apk";
