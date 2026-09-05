@@ -27,12 +27,13 @@ public class EditorActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Ui.applyAnimeBg(this);
         file = new File(getIntent().getStringExtra("file_path"));
         editable = getIntent().getBooleanExtra("editable", true);
         final String projectDir = getIntent().getStringExtra("project_dir");
 
         LinearLayout root = Ui.vertical(this);
-        root.setBackgroundColor(Ui.BG);
+        root.setBackgroundColor(Ui.BG_OVERLAY);
         root.setPadding(Ui.dp(this, 8), Ui.dp(this, 6), Ui.dp(this, 8), Ui.dp(this, 6));
 
         // 顶栏
