@@ -28,10 +28,11 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Ui.applyAnimeBg(this);
         s = new AppSettings(this);
 
         LinearLayout root = Ui.vertical(this);
-        root.setBackgroundColor(Ui.BG);
+        root.setBackgroundColor(Ui.BG_OVERLAY);
         root.setPadding(Ui.dp(this, 16), Ui.dp(this, 10), Ui.dp(this, 16), Ui.dp(this, 16));
 
         LinearLayout header = Ui.horizontal(this);
@@ -109,7 +110,7 @@ public class SettingsActivity extends Activity {
         body.addView(updateBtn, lp(0, 4, 0, 8));
 
         TextView aboutText = Ui.label(this,
-                "ET APK 工坊 v1.1\n"
+                "ET APK 工坊 v1.2\n"
                         + "ET 出品，版权所有 © ET\n\n"
                         + "功能：\n"
                         + "· 反编译任意 APK → smali 源码工程\n"
