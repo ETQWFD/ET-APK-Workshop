@@ -27,8 +27,27 @@ public final class Ui {
     public static final int TEXT_DIM = Color.rgb(139, 148, 158);
     public static final int DANGER   = Color.rgb(248, 113, 113);
     public static final int BORDER   = Color.rgb(48, 58, 70);
+    /** 半透明暗色（用于覆盖在二次元背景上保证文字可读） */
+    public static final int BG_OVERLAY = Color.argb(210, 11, 15, 20);
+    public static final int CARD_OVERLAY = Color.argb(230, 21, 27, 35);
+
+    private static final int[] BG_RES_IDS = {
+            com.et.apkworkshop.R.drawable.bg_1,
+            com.et.apkworkshop.R.drawable.bg_2,
+            com.et.apkworkshop.R.drawable.bg_3,
+    };
 
     private Ui() {}
+
+    /** 随机返回一张二次元美少女背景图资源 ID */
+    public static int randomBgResId() {
+        return BG_RES_IDS[(int) (Math.random() * BG_RES_IDS.length)];
+    }
+
+    /** 给 Activity 设置随机二次元背景 + 暗色遮罩 */
+    public static void applyAnimeBg(android.app.Activity act) {
+        act.getWindow().setBackgroundDrawableResource(randomBgResId());
+    }
 
     public static int dp(Context c, float v) {
         return (int) (v * c.getResources().getDisplayMetrics().density + 0.5f);
