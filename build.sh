@@ -15,19 +15,21 @@ echo "== 1/6 编译资源 =="
 "$BT/aapt2" compile --dir app/res -o out/build/res.zip
 
 echo "== 2/6 链接资源 + Manifest =="
+mkdir -p out/build/gen
 "$BT/aapt2" link \
     -o out/build/base.apk \
     -I "$ANDROID_JAR" \
     --manifest app/AndroidManifest.xml \
     -R out/build/res.zip \
+    --java out/build/gen \
     --min-sdk-version 21 \
     --target-sdk-version 33 \
-    --version-code 2 \
-    --version-name 1.1 \
+    --version-code 3 \
+    --version-name 1.2 \
     --auto-add-overlay
 
 echo "== 3/6 编译 Java =="
-find app/src -name "*.java" > out/build/sources.txt
+find app/src out/build/gen -name "*.java" > out/build/sources.txt
 "$JAVA_HOME/bin/javac" -source 8 -target 8 -nowarn \
     -cp "$ANDROID_JAR:$LIBS" \
     -d out/build/classes \
@@ -55,11 +57,11 @@ echo "== 6/6 对齐 + 签名 =="
 "$BT/zipalign" -f -p 4 out/build/base.apk out/build/aligned.apk
 "$BT/apksigner" sign --ks test/debug.keystore --ks-pass pass:android \
     --ks-key-alias androiddebugkey --key-pass pass:android \
-    --out "out/ET-APK-工坊-v1.1.apk" out/build/aligned.apk
+    --out "out/ET-APK-工坊-v1.2.apk" out/build/aligned.apk
 
 echo ""
 echo "== 验证 =="
-"$BT/apksigner" verify --print-certs "out/ET-APK-工坊-v1.1.apk" | head -3
-"$BT/aapt2" dump badging "out/ET-APK-工坊-v1.1.apk" | head -3
-ls -la "out/ET-APK-工坊-v1.1.apk"
+"$BT/apksigner" verify --print-certs "out/ET-APK-工坊-v1.2.apk" | head -3
+"$BT/aapt2" dump badging "out/ET-APK-工坊-v1.2.apk" | head -3
+ls -la "out/ET-APK-工坊-v1.2.apk"
 echo "BUILD OK"
