@@ -50,9 +50,7 @@ public final class ApkEngine {
         info.created = System.currentTimeMillis();
         info.apiLevel = defaultApiLevel();
         info.dexNames = new ArrayList<String>();
-
-        prog.on("复制原始 APK ...");
-        copyFile(apkFile, info.originalApk());
+        info.originalApkPath = apkFile.getAbsolutePath();
 
         prog.on("解压 APK 资源 ...");
         ZipUtil.unzip(apkFile, info.apkSrcDir());
@@ -91,6 +89,12 @@ public final class ApkEngine {
     public static File compile(ProjectInfo info, Progress prog) throws Exception {
         if (prog == null) prog = NOOP;
         if (!info.outputDir().exists()) info.outputDir().mkdirs();
+
+        File origApk = info.originalApk();
+        if (!origApk.exists()) {
+            throw new Exception("原始 APK 已丢失（路径: " + info.originalApkPath
+                    + "），请重新选择该 APK 进行反编译后再编译");
+        }
 
         // 1. 汇编每个 smali 目录
         Map<String, byte[]> dexMap = new LinkedHashMap<String, byte[]>();
