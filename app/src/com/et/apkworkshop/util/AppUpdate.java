@@ -35,12 +35,15 @@ public final class AppUpdate {
 
     private AppUpdate() {}
 
-    /** Atom Feed 地址列表（主站 + 国内镜像回退） */
-    private static final String[] ATOM_URLS = {
-            "https://github.com/ETQWFD/ET-APK-Workshop/releases.atom",
-            "https://ghproxy.net/https://github.com/ETQWFD/ET-APK-Workshop/releases.atom",
-            "https://mirror.ghproxy.com/https://github.com/ETQWFD/ET-APK-Workshop/releases.atom",
-    };
+    /** Atom Feed 地址列表（主站 + 国内镜像回退），加时间戳防缓存 */
+    private static String[] atomUrls() {
+        long t = System.currentTimeMillis();
+        return new String[]{
+                "https://github.com/ETQWFD/ET-APK-Workshop/releases.atom?t=" + t,
+                "https://ghproxy.net/https://github.com/ETQWFD/ET-APK-Workshop/releases.atom?t=" + t,
+                "https://mirror.ghproxy.com/https://github.com/ETQWFD/ET-APK-Workshop/releases.atom?t=" + t,
+        };
+    }
 
     public static String currentVersion(Activity ctx) {
         try {
@@ -80,7 +83,7 @@ public final class AppUpdate {
     /** 从 Atom Feed 解析最新 release（自动尝试多个镜像） */
     public static ReleaseInfo fetchLatest() throws Exception {
         Exception lastErr = null;
-        for (String atomUrl : ATOM_URLS) {
+        for (String atomUrl : atomUrls()) {
             try {
                 HttpURLConnection conn = (HttpURLConnection) new URL(atomUrl).openConnection();
                 try {
@@ -110,32 +113,48 @@ public final class AppUpdate {
 
     private static ReleaseInfo parseAtom(String xml) throws Exception {
         if (xml == null || xml.isEmpty()) throw new Exception("GitHub 返回空内容");
-        ReleaseInfo r = new ReleaseInfo();
-        // 取第一个 <entry>
-        int entryStart = xml.indexOf("<entry>");
-        if (entryStart < 0) throw new Exception("尚未发布任何版本");
-        int entryEnd = xml.indexOf("</entry>", entryStart);
-        String entry = entryEnd > 0 ? xml.substring(entryStart, entryEnd) : xml.substring(entryStart);
+        // 扫描所有 <entry>，选版本号最高的（避免 Feed 顺序或预发布版本干扰）
+        ReleaseInfo best = null;
+        int pos = 0;
+        while (true) {
+            int entryStart = xml.indexOf("<entry>", pos);
+            if (entryStart < 0) break;
+            int entryEnd = xml.indexOf("</entry>", entryStart);
+            if (entryEnd < 0) break;
+            String entry = xml.substring(entryStart, entryEnd);
+            pos = entryEnd + 8;
 
-        // title: <title>v1.2 - xxx</title>
-        r.title = extractTag(entry, "<title>", "</title>");
-        // tag 从 title 提取（第一个空格前的部分）
-        int sp = r.title.indexOf(' ');
-        r.tagName = sp > 0 ? r.title.substring(0, sp) : r.title;
-        if (r.tagName.isEmpty()) r.tagName = r.title;
+            ReleaseInfo r = new ReleaseInfo();
+            r.title = decodeHtml(extractTag(entry, "<title>", "</title>"));
+            int sp = r.title.indexOf(' ');
+            r.tagName = sp > 0 ? r.title.substring(0, sp) : r.title;
+            if (r.tagName.isEmpty()) r.tagName = r.title;
+            // 只认 v 开头或数字开头的版本 tag
+            if (!r.tagName.startsWith("v") && !r.tagName.startsWith("V")
+                    && !(r.tagName.length() > 0 && Character.isDigit(r.tagName.charAt(0)))) {
+                continue;
+            }
+            int linkIdx = entry.indexOf("href=\"");
+            if (linkIdx >= 0) {
+                int linkEnd = entry.indexOf("\"", linkIdx + 6);
+                if (linkEnd > 0) r.htmlUrl = entry.substring(linkIdx + 6, linkEnd);
+            }
+            if (r.htmlUrl == null) r.htmlUrl = RELEASES_URL;
+            String content = extractTag(entry, "<content type=\"html\">", "</content>");
+            r.body = htmlToText(content);
 
-        // link: <link rel="alternate" type="text/html" href="..."/>
-        int linkIdx = entry.indexOf("href=\"");
-        if (linkIdx >= 0) {
-            int linkEnd = entry.indexOf("\"", linkIdx + 6);
-            if (linkEnd > 0) r.htmlUrl = entry.substring(linkIdx + 6, linkEnd);
+            if (best == null || compareVersions(r.tagName, best.tagName) > 0) {
+                best = r;
+            }
         }
-        if (r.htmlUrl == null) r.htmlUrl = RELEASES_URL;
+        if (best == null) throw new Exception("尚未发布任何版本");
+        return best;
+    }
 
-        // content: <content type="html">...</content>
-        String content = extractTag(entry, "<content type=\"html\">", "</content>");
-        r.body = htmlToText(content);
-        return r;
+    private static String decodeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+                .replace("&quot;", "\"").replace("&#39;", "'").replace("&nbsp;", " ");
     }
 
     private static String extractTag(String xml, String open, String close) {
