@@ -110,16 +110,19 @@ public class SettingsActivity extends Activity {
         body.addView(updateBtn, lp(0, 4, 0, 8));
 
         TextView aboutText = Ui.label(this,
-                "ET APK 工坊 v1.2\n"
-                        + "ET 出品，版权所有 © ET\n\n"
+                "ETC APK 工坊 v2.28\n"
+                        + "ETC 出品，版权所有 © ETC · 徐可欣 协作\n\n"
                         + "功能：\n"
                         + "· 反编译任意 APK → smali 源码工程\n"
+                        + "· 深度脱壳：全文件扫描 dex 魔数 + root 内存转储\n"
                         + "· 内置 smali 源码浏览器与编辑器\n"
                         + "· AI 助手协助分析与修改代码\n"
-                        + "· 一键重新编译、重打包并自动签名（v1+v2）\n\n"
+                        + "· 一键重新编译、重打包并自动签名（v1+v2）\n"
+                        + "· 随机二次元壁纸，每6秒自动切换\n"
+                        + "· 检测更新（GitHub Release，无限流）\n\n"
                         + "使用须知：\n"
                         + "本工具仅用于学习、安全研究、以及修改你自己拥有或有授权修改的应用。"
-                        + "请勿用于破解盗版、绕过付费/授权校验等非法用途。",
+                        + "请勿用于破解盗版、绕过付费/授权校验等非法用途。禁止倒卖。",
                 Ui.TEXT_DIM, 12, false);
         aboutText.setLineSpacing(Ui.dp(this, 3), 1.0f);
         body.addView(aboutText, lp(2, 0, 0, 0));
@@ -167,6 +170,12 @@ public class SettingsActivity extends Activity {
     }
 
     private void testConnection() {
+        // 直接读取输入框当前内容（不要求先保存），空 key 也允许测试（本地免密钥服务）
+        final String url = urlEt.getText().toString().trim();
+        final String key = keyEt.getText().toString().trim();
+        final String model = modelEt.getText().toString().trim();
+        if (url.isEmpty()) { Ui.alert(this, "配置不完整", "请先填写 API 地址"); return; }
+        if (model.isEmpty()) { Ui.alert(this, "配置不完整", "请先填写模型名"); return; }
         final ProgressDialog pd = new ProgressDialog(this);
         pd.setMessage("正在测试连接 …");
         pd.setCancelable(false);
@@ -174,7 +183,7 @@ public class SettingsActivity extends Activity {
         new Thread(new Runnable() {
             @Override public void run() {
                 try {
-                    final String reply = AiClient.testConnection(s.getAiBaseUrl(), s.getAiApiKey(), s.getAiModel());
+                    final String reply = AiClient.testConnection(url, key, model);
                     runOnUiThread(new Runnable() {
                         @Override public void run() {
                             pd.dismiss();
