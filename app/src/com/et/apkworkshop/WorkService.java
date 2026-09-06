@@ -44,7 +44,7 @@ public class WorkService extends Service {
 
     private void createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "ET APK 工坊", NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "ETC APK 工坊", NotificationManager.IMPORTANCE_LOW);
             ch.setDescription("反编译 / 编译打包进度");
             ch.setSound(null, null);
             nm.createNotificationChannel(ch);
