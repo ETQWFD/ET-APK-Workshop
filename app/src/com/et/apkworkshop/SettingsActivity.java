@@ -109,8 +109,61 @@ public class SettingsActivity extends Activity {
         });
         body.addView(updateBtn, lp(0, 4, 0, 8));
 
+        // 官网链接
+        TextView webBtn = Ui.ghostButton(this, "官方网站", Ui.PRIMARY2);
+        webBtn.setGravity(Gravity.CENTER);
+        webBtn.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                try {
+                    startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://etqwfd.github.io/ET-APK-Workshop/")));
+                } catch (Exception e) { Ui.toast(SettingsActivity.this, "无法打开浏览器"); }
+            }
+        });
+        body.addView(webBtn, lp(0, 4, 0, 8));
+
+        // MIT 协议
+        TextView mitBtn = Ui.ghostButton(this, "MIT 开源协议", Ui.TEXT_DIM);
+        mitBtn.setGravity(Gravity.CENTER);
+        mitBtn.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Ui.alert(SettingsActivity.this, "MIT License",
+                        "Copyright (c) 2026 ETC\n\n"
+                        + "Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+                        + "of this software and associated documentation files (the \"Software\"), to deal\n"
+                        + "in the Software without restriction, including without limitation the rights\n"
+                        + "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
+                        + "copies of the Software, and to permit persons to whom the Software is\n"
+                        + "furnished to do so, subject to the following conditions:\n\n"
+                        + "The above copyright notice and this permission notice shall be included in all\n"
+                        + "copies or substantial portions of the Software.\n\n"
+                        + "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+                        + "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+                        + "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.");
+            }
+        });
+        body.addView(mitBtn, lp(0, 4, 0, 8));
+
+        // 许可协议
+        TextView licBtn = Ui.ghostButton(this, "使用许可协议", Ui.TEXT_DIM);
+        licBtn.setGravity(Gravity.CENTER);
+        licBtn.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Ui.alert(SettingsActivity.this, "使用许可协议",
+                        "ETC APK 工坊 使用许可协议\n\n"
+                        + "1. 本工具基于 MIT 协议开源，版权所有 © 2026 ETC。\n"
+                        + "2. 本工具受中华人民共和国法律保护，公安机关管辖。\n"
+                        + "3. 本工具仅用于学习、安全研究、以及修改你自己拥有或有授权修改的应用。\n"
+                        + "4. 本工具虽可能触及部分厂商的用户协议，但任何法律责任由使用者自行承担，开发者 ETC 不承担任何责任。\n"
+                        + "5. 禁止将本工具用于破解盗版、绕过付费/授权校验、窃取他人数据等非法用途。\n"
+                        + "6. 禁止倒卖本软件或其修改版本。\n"
+                        + "7. 使用本工具即表示你已阅读并同意以上全部条款。");
+            }
+        });
+        body.addView(licBtn, lp(0, 4, 0, 8));
+
         TextView aboutText = Ui.label(this,
-                "ETC APK 工坊 v2.11\n"
+                "ETC APK 工坊 v2.12\n"
                         + "ETC 出品，版权所有 © ETC · MIT License\n\n"
                         + "功能：\n"
                         + "· 反编译任意 APK → smali 源码工程\n"
