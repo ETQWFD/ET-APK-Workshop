@@ -202,9 +202,10 @@ public class MainActivity extends Activity {
     private void startWork(Uri uri, boolean unpack) {
         try {
             // 检查存储权限，未授予则提示但不阻塞（缓存复制不需要权限）
+            Storage.reset();
+            projectsRoot = Storage.getProjectsDir();
             if (!Storage.hasPermission(this)) {
-                Ui.toast(this, "提示：未授予存储权限，工程可能无法保存，请在设置中允许");
-                requestPermissionsIfNeeded();
+                Ui.toast(this, "使用应用私有目录（未授予所有文件权限），工程存于 Android/data/ 下");
             }
             String suffix = unpack ? "unpack.apk" : "picked.apk";
             File cache = new File(getCacheDir(), suffix);
@@ -214,6 +215,10 @@ public class MainActivity extends Activity {
             }
             String prefix = unpack ? "unpack_" : "proj_";
             File projectDir = new File(projectsRoot, prefix + System.currentTimeMillis() % 100000);
+            if (!projectDir.mkdirs() && !projectDir.isDirectory()) {
+                Ui.toast(this, "无法创建工程目录，请检查存储权限");
+                return;
+            }
             Intent i = new Intent(this, DecompileActivity.class);
             i.putExtra("apk_path", cache.getAbsolutePath());
             i.putExtra("project_dir", projectDir.getAbsolutePath());
@@ -244,7 +249,12 @@ public class MainActivity extends Activity {
         return f.exists() ? f.lastModified() : dir.lastModified();
     }
 
-    @Override protected void onResume() { super.onResume(); refreshProjects(); }
+    @Override protected void onResume() {
+        super.onResume();
+        Storage.reset();
+        projectsRoot = Storage.getProjectsDir();
+        refreshProjects();
+    }
 
     static class ProjectAdapter extends BaseAdapter {
         private final Context ctx; private final List<File> list;
