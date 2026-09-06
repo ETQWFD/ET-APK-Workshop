@@ -41,8 +41,8 @@ public final class WallpaperManager {
             com.et.apkworkshop.R.drawable.bg_3,
     };
 
-    private static final long ROTATE_INTERVAL = 6000; // 6秒
-    private static final int MAX_HISTORY = 20;
+    private static final long ROTATE_INTERVAL = 60000; // 60秒（每分钟更换，次次不同）
+    private static final int MAX_HISTORY = 50;
 
     private static WallpaperManager instance;
     private final List<WeakReference<WallpaperListener>> listeners = new ArrayList<>();
