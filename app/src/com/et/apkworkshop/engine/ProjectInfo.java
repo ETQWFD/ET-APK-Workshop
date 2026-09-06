@@ -24,15 +24,23 @@ public final class ProjectInfo {
     public String name;
     public long created;
     public int apiLevel;
-    public List<String> dexNames;   // 例如 ["classes.dex", "classes2.dex"]
+    public List<String> dexNames;
     public long lastBuild;
     public String lastOutput;
+    public String originalApkPath;
 
     public ProjectInfo() {
         dexNames = new ArrayList<String>();
     }
 
-    public File originalApk() { return new File(projectDir, "original.apk"); }
+    /** 原始 APK 路径（不复制到工程，节省空间） */
+    public File originalApk() {
+        if (originalApkPath != null && !originalApkPath.isEmpty()) {
+            File f = new File(originalApkPath);
+            if (f.exists()) return f;
+        }
+        return new File(projectDir, "original.apk");
+    }
     public File apkSrcDir()   { return new File(projectDir, "apk_src"); }
     public File outputDir()   { return new File(projectDir, "output"); }
     public File infoFile()    { return new File(projectDir, "info.json"); }
@@ -59,6 +67,7 @@ public final class ProjectInfo {
             pi.apiLevel = j.optInt("apiLevel", 34);
             pi.lastBuild = j.optLong("lastBuild");
             pi.lastOutput = j.optString("lastOutput", "");
+            pi.originalApkPath = j.optString("originalApkPath", "");
             JSONArray arr = j.optJSONArray("dexNames");
             pi.dexNames.clear();
             if (arr != null) {
@@ -80,6 +89,7 @@ public final class ProjectInfo {
         j.put("apiLevel", apiLevel);
         j.put("lastBuild", lastBuild);
         j.put("lastOutput", lastOutput == null ? "" : lastOutput);
+        j.put("originalApkPath", originalApkPath == null ? "" : originalApkPath);
         JSONArray arr = new JSONArray();
         for (String d : dexNames) arr.put(d);
         j.put("dexNames", arr);
