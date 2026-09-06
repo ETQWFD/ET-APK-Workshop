@@ -18,18 +18,18 @@ import android.widget.Toast;
  */
 public final class Ui {
 
-    public static final int BG       = Color.rgb(11, 15, 20);
-    public static final int CARD     = Color.rgb(21, 27, 35);
-    public static final int CARD2    = Color.rgb(29, 37, 47);
-    public static final int PRIMARY  = Color.rgb(34, 211, 238);   // 青
-    public static final int ACCENT   = Color.rgb(74, 222, 128);   // 绿
-    public static final int TEXT     = Color.rgb(230, 237, 243);
-    public static final int TEXT_DIM = Color.rgb(139, 148, 158);
+    public static final int BG       = Color.rgb(10, 12, 20);
+    public static final int CARD     = Color.rgb(20, 24, 38);
+    public static final int CARD2    = Color.rgb(28, 33, 50);
+    public static final int PRIMARY  = Color.rgb(139, 92, 246);    // 紫
+    public static final int PRIMARY2 = Color.rgb(34, 211, 238);    // 青
+    public static final int ACCENT   = Color.rgb(74, 222, 128);    // 绿
+    public static final int TEXT     = Color.rgb(235, 238, 245);
+    public static final int TEXT_DIM = Color.rgb(140, 148, 165);
     public static final int DANGER   = Color.rgb(248, 113, 113);
-    public static final int BORDER   = Color.rgb(48, 58, 70);
-    /** 半透明暗色（用于覆盖在二次元背景上保证文字可读） */
-    public static final int BG_OVERLAY = Color.argb(210, 11, 15, 20);
-    public static final int CARD_OVERLAY = Color.argb(230, 21, 27, 35);
+    public static final int BORDER   = Color.rgb(50, 56, 75);
+    public static final int BG_OVERLAY = Color.argb(215, 10, 12, 20);
+    public static final int CARD_OVERLAY = Color.argb(235, 20, 24, 38);
 
     private static final int[] BG_RES_IDS = {
             com.et.apkworkshop.R.drawable.bg_1,
@@ -86,12 +86,32 @@ public final class Ui {
     public static Button primaryButton(Context c, String text) {
         Button b = new Button(c);
         b.setText(text);
-        b.setTextColor(Color.rgb(2, 20, 30));
+        b.setTextColor(Color.WHITE);
         b.setTypeface(Typeface.DEFAULT_BOLD);
         b.setTextSize(16);
         b.setAllCaps(false);
-        b.setBackground(rounded(PRIMARY, 14, c));
+        GradientDrawable g = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{PRIMARY, PRIMARY2});
+        g.setCornerRadius(dp(c, 14));
+        b.setBackground(g);
         return b;
+    }
+
+    /** 卡片容器：圆角+边框+内边距 */
+    public static LinearLayout card(Context c) {
+        LinearLayout card = vertical(c);
+        card.setBackground(roundedStroke(CARD_OVERLAY, BORDER, 16, c));
+        int p = dp(c, 16);
+        card.setPadding(p, p, p, p);
+        return card;
+    }
+
+    /** 分区标题 */
+    public static TextView sectionTitle(Context c, String text) {
+        TextView t = label(c, text, PRIMARY2, 13, true);
+        t.setPadding(0, dp(c, 4), 0, dp(c, 8));
+        return t;
     }
 
     public static Button ghostButton(Context c, String text, int textColor) {
