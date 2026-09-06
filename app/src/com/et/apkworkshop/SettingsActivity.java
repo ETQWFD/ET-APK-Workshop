@@ -111,7 +111,7 @@ public class SettingsActivity extends Activity {
 
         TextView aboutText = Ui.label(this,
                 "ETC APK 工坊 v2.9\n"
-                        + "ETC 出品，版权所有 © ETC · 徐可欣 协作 · MIT License\n\n"
+                        + "ETC 出品，版权所有 © ETC · MIT License\n\n"
                         + "功能：\n"
                         + "· 反编译任意 APK → smali 源码工程\n"
                         + "· C++ 原生深度脱壳（免root + Shizuku支持）\n"
