@@ -63,7 +63,7 @@ public class MainActivity extends Activity {
 
         LinearLayout header = Ui.horizontal(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = Ui.label(this, "ET APK 工坊", Ui.PRIMARY, 22, true);
+        TextView title = Ui.label(this, "ETC APK 工坊", Ui.PRIMARY, 22, true);
         header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         ImageView gear = new ImageView(this);
         gear.setImageDrawable(Ui.roundedStroke(Ui.CARD2, Ui.BORDER, 12, this));
@@ -129,7 +129,7 @@ public class MainActivity extends Activity {
             }
         });
         root.addView(projectList, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-        root.addView(Ui.label(this, "ET 出品 · 版权所有 · 禁止倒卖 · 仅供学习与自有应用改装", Ui.TEXT_DIM, 11, false), lp(2, 10, 0, 0));
+        root.addView(Ui.label(this, "ETC 出品 · 版权所有 · 禁止倒卖 · 仅供学习与自有应用改装", Ui.TEXT_DIM, 11, false), lp(2, 10, 0, 0));
         setContentView(root);
 
         requestPermissionsIfNeeded();
@@ -180,7 +180,7 @@ public class MainActivity extends Activity {
     }
 
     private void pickApk(int reqCode, boolean unpack) {
-        if (!Storage.hasPermission(this)) { Ui.toast(this, "请先授予存储权限"); requestPermissionsIfNeeded(); return; }
+        // ACTION_OPEN_DOCUMENT 不需要存储权限（系统授予 URI 访问），直接打开选择器
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
@@ -201,6 +201,11 @@ public class MainActivity extends Activity {
 
     private void startWork(Uri uri, boolean unpack) {
         try {
+            // 检查存储权限，未授予则提示但不阻塞（缓存复制不需要权限）
+            if (!Storage.hasPermission(this)) {
+                Ui.toast(this, "提示：未授予存储权限，工程可能无法保存，请在设置中允许");
+                requestPermissionsIfNeeded();
+            }
             String suffix = unpack ? "unpack.apk" : "picked.apk";
             File cache = new File(getCacheDir(), suffix);
             try (InputStream in = getContentResolver().openInputStream(uri); OutputStream out = new FileOutputStream(cache)) {
