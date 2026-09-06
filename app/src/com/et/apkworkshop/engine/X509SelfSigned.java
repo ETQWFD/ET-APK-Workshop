@@ -31,7 +31,7 @@ import java.util.TimeZone;
  */
 public final class X509SelfSigned {
 
-    private static final String CN = "ET APK 工坊";
+    private static final String CN = "ETC APK 工坊";
     private static final String OID_SHA256_RSA = "1.2.840.113549.1.1.11";
     private static final String OID_RSA = "1.2.840.113549.1.1.1";
     private static final String OID_CN = "2.5.4.3";
