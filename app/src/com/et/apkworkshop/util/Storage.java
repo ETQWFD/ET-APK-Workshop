@@ -37,17 +37,26 @@ public final class Storage {
         return f;
     }
 
-    /** 检查是否有存储权限 */
+    /**
+     * 检查是否有存储权限（实际写入测试，最可靠）。
+     * 先尝试在 lookapks 目录创建测试文件，成功则有权限。
+     */
     public static boolean hasPermission(Context ctx) {
-        if (Build.VERSION.SDK_INT >= 30) {
-            // Android 11+: 需要"所有文件访问权限"
-            return Environment.isExternalStorageManager();
+        try {
+            File root = new File(Environment.getExternalStorageDirectory(), ROOT_NAME);
+            if (!root.exists()) {
+                boolean ok = root.mkdirs();
+                if (!ok) return false;
+            }
+            File test = new File(root, ".perm_test_" + System.currentTimeMillis());
+            java.io.FileOutputStream out = new java.io.FileOutputStream(test);
+            try { out.write(new byte[]{1}); } finally { out.close(); }
+            boolean ok = test.exists() && test.length() == 1;
+            test.delete();
+            return ok;
+        } catch (Exception e) {
+            return false;
         }
-        if (Build.VERSION.SDK_INT >= 23) {
-            return ctx.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    == PackageManager.PERMISSION_GRANTED;
-        }
-        return true; // API < 23 安装时自动授予
     }
 
     /** 获取存储权限申请的 Intent（Android 11+ 跳转设置页） */
