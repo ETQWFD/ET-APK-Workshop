@@ -43,6 +43,28 @@ public final class Unpacker {
         {"几维安全", "libkwscmm.so", "libkwscrash.so"},
     };
 
+    // 不需要深度扫描的扩展名（图片/音频/视频/字体/文本等不可能嵌入 dex）
+    private static final String[] SKIP_EXT = {
+            ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".ico",
+            ".mp3", ".ogg", ".wav", ".m4a", ".aac", ".flac", ".mid",
+            ".mp4", ".3gp", ".webm", ".mkv", ".avi",
+            ".ttf", ".otf", ".ttc", ".woff", ".woff2",
+            ".xml", ".json", ".txt", ".html", ".htm", ".css", ".js",
+            ".properties", ".conf", ".cfg", ".ini", ".md",
+            ".arsc", ".9.png"
+    };
+    private static final long MAX_DEEP_SCAN_SIZE = 15 * 1024 * 1024; // 单文件超过15MB不深度扫描
+
+    private static boolean shouldDeepScan(String name, long size) {
+        if (size > MAX_DEEP_SCAN_SIZE) return false;
+        if (size <= 40) return false;
+        String lower = name.toLowerCase();
+        for (String ext : SKIP_EXT) {
+            if (lower.endsWith(ext)) return false;
+        }
+        return true;
+    }
+
     private Unpacker() {}
 
     /**
@@ -92,9 +114,8 @@ public final class Unpacker {
                     prog.on("提取 dex: " + name);
                 }
 
-                // 全文件深度扫描：检查每个文件的字节流中是否嵌入了 dex 魔数
-                // （dex\n035 或 dex\n036），不限于 .dex 扩展名或文件头
-                if (!e.isDirectory() && e.getSize() > 40) {
+                // 全文件深度扫描：只对可能含 dex 的文件扫描（跳过图片/音频/字体等）
+                if (!e.isDirectory() && shouldDeepScan(name, e.getSize())) {
                     try {
                         InputStream is = zip.getInputStream(e);
                         byte[] data = readAllBytes(is);
