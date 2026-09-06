@@ -26,13 +26,21 @@ public final class AppUpdate {
     public static final String ATOM_URL = RELEASES_URL + ".atom";
 
     public static final class ReleaseInfo {
-        public String tagName;     // 如 v1.2
+        public String tagName;     // 如 v2.28
         public String title;       // release 标题
         public String body;        // 更新说明（纯文本）
         public String htmlUrl;     // release 页面
+        public String apkUrl;      // APK 直接下载链接
     }
 
     private AppUpdate() {}
+
+    /** Atom Feed 地址列表（主站 + 国内镜像回退） */
+    private static final String[] ATOM_URLS = {
+            "https://github.com/ETQWFD/ET-APK-Workshop/releases.atom",
+            "https://ghproxy.net/https://github.com/ETQWFD/ET-APK-Workshop/releases.atom",
+            "https://mirror.ghproxy.com/https://github.com/ETQWFD/ET-APK-Workshop/releases.atom",
+    };
 
     public static String currentVersion(Activity ctx) {
         try {
@@ -69,21 +77,35 @@ public final class AppUpdate {
         try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; }
     }
 
-    /** 从 Atom Feed 解析最新 release */
+    /** 从 Atom Feed 解析最新 release（自动尝试多个镜像） */
     public static ReleaseInfo fetchLatest() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(ATOM_URL).openConnection();
-        try {
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("User-Agent", "ET-APK-Workshop");
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(20000);
-            int code = conn.getResponseCode();
-            if (code != 200) throw new Exception("GitHub 返回 HTTP " + code + "（可能网络不通）");
-            String xml = readAll(conn.getInputStream());
-            return parseAtom(xml);
-        } finally {
-            conn.disconnect();
+        Exception lastErr = null;
+        for (String atomUrl : ATOM_URLS) {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(atomUrl).openConnection();
+                try {
+                    conn.setRequestMethod("GET");
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 ETC-APK-Workshop");
+                    conn.setConnectTimeout(8000);
+                    conn.setReadTimeout(15000);
+                    conn.setInstanceFollowRedirects(true);
+                    int code = conn.getResponseCode();
+                    if (code != 200) { lastErr = new Exception("HTTP " + code); continue; }
+                    String xml = readAll(conn.getInputStream());
+                    ReleaseInfo r = parseAtom(xml);
+                    // 构造 APK 直接下载链接
+                    r.apkUrl = "https://github.com/ETQWFD/ET-APK-Workshop/releases/download/"
+                            + r.tagName + "/ETC-APK-Workshop-" + r.tagName + ".apk";
+                    return r;
+                } finally {
+                    conn.disconnect();
+                }
+            } catch (Exception e) {
+                lastErr = e;
+            }
         }
+        throw new Exception("无法连接 GitHub（所有镜像均失败）：" + (lastErr != null ? lastErr.getMessage() : "未知错误")
+                + "\n请检查网络或手动前往 " + RELEASES_URL);
     }
 
     private static ReleaseInfo parseAtom(String xml) throws Exception {
@@ -182,6 +204,12 @@ public final class AppUpdate {
                     @Override public void onClick(DialogInterface d, int w) {
                         try { ctx.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(r.htmlUrl))); }
                         catch (Exception e) { Ui.toast(ctx, "无法打开浏览器"); }
+                    }
+                })
+                .setNeutralButton("直接下载APK", new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface d, int w) {
+                        try { ctx.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(r.apkUrl))); }
+                        catch (Exception e) { Ui.toast(ctx, "无法打开下载链接"); }
                     }
                 })
                 .setNegativeButton("暂不更新", null)
