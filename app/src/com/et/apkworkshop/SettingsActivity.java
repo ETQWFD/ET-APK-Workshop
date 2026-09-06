@@ -110,15 +110,15 @@ public class SettingsActivity extends Activity {
         body.addView(updateBtn, lp(0, 4, 0, 8));
 
         TextView aboutText = Ui.label(this,
-                "ETC APK 工坊 v2.28\n"
-                        + "ETC 出品，版权所有 © ETC · 徐可欣 协作\n\n"
+                "ETC APK 工坊 v2.9\n"
+                        + "ETC 出品，版权所有 © ETC · 徐可欣 协作 · MIT License\n\n"
                         + "功能：\n"
                         + "· 反编译任意 APK → smali 源码工程\n"
-                        + "· 深度脱壳：全文件扫描 dex 魔数 + root 内存转储\n"
+                        + "· C++ 原生深度脱壳（免root + Shizuku支持）\n"
                         + "· 内置 smali 源码浏览器与编辑器\n"
                         + "· AI 助手协助分析与修改代码\n"
                         + "· 一键重新编译、重打包并自动签名（v1+v2）\n"
-                        + "· 随机二次元壁纸，每6秒自动切换\n"
+                        + "· 随机二次元壁纸，每分钟自动切换\n"
                         + "· 检测更新（GitHub Release，无限流）\n\n"
                         + "使用须知：\n"
                         + "本工具仅用于学习、安全研究、以及修改你自己拥有或有授权修改的应用。"
