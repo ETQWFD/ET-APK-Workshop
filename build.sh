@@ -24,8 +24,8 @@ mkdir -p out/build/gen
     --java out/build/gen \
     --min-sdk-version 21 \
     --target-sdk-version 33 \
-    --version-code 29 \
-    --version-name 2.9 \
+    --version-code 30 \
+    --version-name 2.10 \
     --auto-add-overlay
 
 echo "== 3/6 编译 Java =="
@@ -61,11 +61,11 @@ echo "== 6/6 对齐 + 签名 =="
 "$BT/zipalign" -f -p 4 out/build/base.apk out/build/aligned.apk
 "$BT/apksigner" sign --ks test/debug.keystore --ks-pass pass:android \
     --ks-key-alias androiddebugkey --key-pass pass:android \
-    --out "out/ETC-APK-工坊-v2.9.apk" out/build/aligned.apk
+    --out "out/ETC-APK-工坊-v2.10.apk" out/build/aligned.apk
 
 echo ""
 echo "== 验证 =="
-"$BT/apksigner" verify --print-certs "out/ETC-APK-工坊-v2.9.apk" | head -3
-"$BT/aapt2" dump badging "out/ETC-APK-工坊-v2.9.apk" | head -3
-ls -la "out/ETC-APK-工坊-v2.9.apk"
+"$BT/apksigner" verify --print-certs "out/ETC-APK-工坊-v2.10.apk" | head -3
+"$BT/aapt2" dump badging "out/ETC-APK-工坊-v2.10.apk" | head -3
+ls -la "out/ETC-APK-工坊-v2.10.apk"
 echo "BUILD OK"
