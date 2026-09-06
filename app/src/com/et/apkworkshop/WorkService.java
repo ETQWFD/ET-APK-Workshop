@@ -13,6 +13,7 @@ import android.os.IBinder;
 import com.et.apkworkshop.engine.ApkEngine;
 import com.et.apkworkshop.engine.ProjectInfo;
 import com.et.apkworkshop.engine.Unpacker;
+import com.et.apkworkshop.util.Storage;
 
 import java.io.File;
 
@@ -80,15 +81,28 @@ public class WorkService extends Service {
         ws.workType = action;
         ws.projectDir = projectDir;
 
+        // 预检：确保工程目录可写，不可写则尝试回退到应用私有目录
+        if (projectDir != null) {
+            File dir = new File(projectDir);
+            if (!dir.exists()) dir.mkdirs();
+            if (!dir.exists() || !dir.canWrite()) {
+                File fallback = new File(Storage.getProjectsDir(), dir.getName());
+                if (fallback.mkdirs() && fallback.canWrite()) {
+                    ws.projectDir = fallback.getAbsolutePath();
+                }
+            }
+        }
+
         new Thread(new Runnable() {
             @Override public void run() {
                 try {
+                    String pd = WorkState.get().projectDir;
                     if (ACTION_DECOMPILE.equals(action)) {
-                        doDecompile(apkPath, projectDir, apiLevel);
+                        doDecompile(apkPath, pd, apiLevel);
                     } else if (ACTION_COMPILE.equals(action)) {
-                        doCompile(projectDir);
+                        doCompile(pd);
                     } else if (ACTION_UNPACK.equals(action)) {
-                        doUnpack(apkPath, projectDir);
+                        doUnpack(apkPath, pd);
                     }
                     WorkState.get().status = WorkState.STATUS_DONE;
                     updateNotification("完成", WorkState.get().message, 100);
