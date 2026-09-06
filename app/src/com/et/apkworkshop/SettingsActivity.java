@@ -110,7 +110,7 @@ public class SettingsActivity extends Activity {
         body.addView(updateBtn, lp(0, 4, 0, 8));
 
         TextView aboutText = Ui.label(this,
-                "ETC APK 工坊 v2.10\n"
+                "ETC APK 工坊 v2.11\n"
                         + "ETC 出品，版权所有 © ETC · MIT License\n\n"
                         + "功能：\n"
                         + "· 反编译任意 APK → smali 源码工程\n"
