@@ -44,9 +44,22 @@ public final class Ui {
         return BG_RES_IDS[(int) (Math.random() * BG_RES_IDS.length)];
     }
 
-    /** 给 Activity 设置随机二次元背景 + 暗色遮罩 */
-    public static void applyAnimeBg(android.app.Activity act) {
+    /** 给 Activity 设置二次元壁纸（在线随机，每6秒切换，不重复）+ 暗色遮罩 */
+    public static void applyAnimeBg(final android.app.Activity act) {
+        AppContext.init(act);
+        final WallpaperManager wm = WallpaperManager.get();
+        wm.start();
+        // 先设一张本地随机背景兜底
         act.getWindow().setBackgroundDrawableResource(randomBgResId());
+        // 监听壁纸变化
+        wm.addListener(new WallpaperManager.WallpaperListener() {
+            @Override public void onWallpaperChanged(android.graphics.Bitmap bmp) {
+                if (bmp != null && !act.isFinishing()) {
+                    act.getWindow().setBackgroundDrawable(
+                            new android.graphics.drawable.BitmapDrawable(act.getResources(), bmp));
+                }
+            }
+        });
     }
 
     public static int dp(Context c, float v) {
