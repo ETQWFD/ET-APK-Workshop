@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETC APK 工坊 - 安卓反编译与脱壳工具</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#0b0f14;color:#e6edf3;line-height:1.7}
+a{color:#22d3ee;text-decoration:none}
+a:hover{text-decoration:underline}
+.container{max-width:960px;margin:0 auto;padding:0 20px}
+header{background:linear-gradient(135deg,#0b0f14 0%,#111827 100%);border-bottom:1px solid #303a46;padding:16px 0;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+nav{display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:#22d3ee}
+.logo img{width:32px;height:32px;border-radius:8px}
+.nav-links{display:flex;gap:24px;font-size:14px}
+.nav-links a{color:#8b949e}
+.nav-links a:hover{color:#22d3ee;text-decoration:none}
+.hero{text-align:center;padding:80px 0 60px}
+.hero-icon{width:96px;height:96px;border-radius:24px;margin:0 auto 24px;box-shadow:0 8px 32px rgba(34,211,238,0.3)}
+.hero h1{font-size:42px;font-weight:800;margin-bottom:12px;background:linear-gradient(135deg,#22d3ee,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:18px;color:#8b949e;margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto}
+.btn{display:inline-block;padding:14px 36px;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#22d3ee,#0891b2);color:#0b0f14}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(34,211,238,0.4);text-decoration:none}
+.btn-secondary{background:transparent;border:1px solid #303a46;color:#e6edf3;margin-left:12px}
+.btn-secondary:hover{border-color:#22d3ee;color:#22d3ee;text-decoration:none}
+.hero-meta{margin-top:24px;font-size:13px;color:#6e7681}
+section{padding:60px 0}
+section h2{font-size:28px;font-weight:700;margin-bottom:8px;color:#e6edf3}
+section .subtitle{color:#8b949e;margin-bottom:36px;font-size:15px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.feature{background:#151b23;border:1px solid #21262d;border-radius:16px;padding:24px;transition:border-color .2s}
+.feature:hover{border-color:#22d3ee}
+.feature-icon{font-size:28px;margin-bottom:12px}
+.feature h3{font-size:17px;font-weight:600;margin-bottom:8px;color:#e6edf3}
+.feature p{font-size:14px;color:#8b949e}
+.card{background:#151b23;border:1px solid #21262d;border-radius:16px;padding:28px;margin-bottom:20px}
+.card h3{font-size:18px;font-weight:600;margin-bottom:16px;color:#22d3ee}
+.card h4{font-size:15px;font-weight:600;margin:16px 0 8px;color:#e6edf3}
+.card p,.card li{font-size:14px;color:#8b949e}
+.card ul{padding-left:20px;margin:8px 0}
+.card li{margin-bottom:6px}
+.code-block{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:16px;font-family:"SF Mono",Monaco,Consolas,monospace;font-size:13px;color:#4ade80;overflow-x:auto;margin:12px 0}
+.warn{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:12px;padding:16px;margin:16px 0;font-size:14px;color:#f87171}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #21262d}
+th{color:#22d3ee;font-weight:600}
+td{color:#8b949e}
+footer{border-top:1px solid #21262d;padding:32px 0;text-align:center;color:#6e7681;font-size:13px}
+footer a{color:#8b949e}
+.version-badge{display:inline-block;background:rgba(34,211,238,0.15);color:#22d3ee;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600}
+@media(max-width:600px){.hero h1{font-size:32px}.nav-links{display:none}.btn-secondary{margin-left:0;margin-top:12px}}
+</style>
+</head>
+<body>
+<header>
+<div class="container">
+<nav>
+<div class="logo"><img src="assets/favicon.png" alt="icon"> ETC APK 工坊</div>
+<div class="nav-links">
+<a href="#features">功能</a>
+<a href="#manual">使用手册</a>
+<a href="#license">许可协议</a>
+<a href="#mit">MIT</a>
+<a href="https://github.com/ETQWFD/ET-APK-Workshop" target="_blank">GitHub</a>
+</div>
+</nav>
+</div>
+</header>
+
+<div class="hero">
+<div class="container">
+<img src="assets/favicon.png" alt="ETC APK 工坊" class="hero-icon">
+<h1>ETC APK 工坊</h1>
+<p>安卓平台 APK 反编译、深度脱壳、源码修改与一键重打包工具。内置 C++ 原生脱壳引擎，支持免 root 静态脱壳与 Shizuku 临时权限。</p>
+<div>
+<a href="https://github.com/ETQWFD/ET-APK-Workshop/releases/download/v2.9/ETC-APK-Workshop-v2.9.apk" class="btn btn-primary">下载 APK v2.9</a>
+<a href="https://github.com/ETQWFD/ET-APK-Workshop" target="_blank" class="btn btn-secondary">GitHub 仓库</a>
+</div>
+<div class="hero-meta">
+<span class="version-badge">v2.9</span> &nbsp;|&nbsp;
+支持 Android 5.0 ~ 14 &nbsp;|&nbsp;
+32位 / 64位 &nbsp;|&nbsp;
+MIT License
+</div>
+</div>
+</div>
+
+<section id="features">
+<div class="container">
+<h2>核心功能</h2>
+<p class="subtitle">纯 Java + C++ 原生实现，无 Kotlin / AndroidX 依赖</p>
+<div class="features">
+<div class="feature">
+<div class="feature-icon">&#128295;</div>
+<h3>APK 反编译</h3>
+<p>选择任意 APK，自动反编译为 smali 源码工程。前台服务执行，不被系统杀死，通知栏实时显示进度。</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#128274;</div>
+<h3>C++ 深度脱壳</h3>
+<p>原生 C++ 引擎全文件字节扫描 dex 魔数，提取隐藏在任意文件中的 dex。检测 360、腾讯、爱加密、梆梆等 10+ 种加固壳。</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#128300;</div>
+<h3>免 root 脱壳</h3>
+<p>静态深度扫描无需 root。可选 Shizuku 临时权限模式，获得 shell 级操作能力，进一步提升脱壳范围。</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#9999;&#65039;</div>
+<h3>smali 编辑器</h3>
+<p>内置文件浏览器与代码编辑器，支持查看、修改、重命名、删除。长按文件可直接发送给 AI 分析。</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#129302;</div>
+<h3>AI 助手</h3>
+<p>配置任意 OpenAI 兼容接口，让 AI 分析 smali 代码并给出修改方案。支持本地部署模型，无需联网。</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#128230;</div>
+<h3>一键编译打包</h3>
+<p>smali 到 dex 到重建 APK，自动 v1+v2 签名。编译后可直接安装、分享或保存。</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#127842;</div>
+<h3>随机二次元壁纸</h3>
+<p>在线 API 获取随机二次元美少女壁纸，每分钟自动切换，最近 50 张不重复。API 失败自动回退本地壁纸。</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#128279;</div>
+<h3>检测更新</h3>
+<p>启动自动检测 + 设置页手动检测。GitHub Atom Feed + 国内镜像回退，无 API 限流问题。</p>
+</div>
+</div>
+</div>
+</section>
+
+<section id="manual">
+<div class="container">
+<h2>使用手册</h2>
+<p class="subtitle">从安装到进阶的完整指南</p>
+
+<div class="card">
+<h3>安装与初始配置</h3>
+<ol>
+<li>下载 APK 并安装（需允许未知来源）</li>
+<li>首次启动阅读并同意许可协议</li>
+<li>授予存储权限（Android 11+ 需允许"所有文件访问权限"）</li>
+<li>授予通知权限（前台服务进度通知需要）</li>
+<li>工程文件默认保存在 <code>/storage/emulated/0/lookapks/</code></li>
+</ol>
+</div>
+
+<div class="card">
+<h3>反编译 APK</h3>
+<ol>
+<li>主界面点击「选择 APK 反编译」</li>
+<li>在文件选择器中选择目标 APK</li>
+<li>前台服务开始反编译，通知栏显示进度</li>
+<li>完成后自动进入工程目录，可浏览 smali 源码</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>脱壳</h3>
+<h4>免 root 静态脱壳</h4>
+<ul>
+<li>主界面点击「选择 APK 脱壳」</li>
+<li>C++ 引擎扫描 APK 中所有文件的字节流，查找 dex 魔数</li>
+<li>提取所有找到的 dex 到 <code>unpacked_dex/</code> 目录</li>
+<li>生成脱壳报告，列出检测到的加固壳和提取的 dex</li>
+</ul>
+<h4>Shizuku 增强模式</h4>
+<ul>
+<li>安装 Shizuku 应用并通过 adb 或 root 启动</li>
+<li>在设置中开启 Shizuku 模式</li>
+<li>获得 shell (uid 2000) 级操作权限，可读取更多系统信息</li>
+</ul>
+<div class="warn">注意：动态加密的加固壳（运行时才解密真实 dex）在非 root 设备上无法完全脱壳，这是安卓系统安全机制限制。root 设备可结合内存转储获取运行时解密的 dex。</div>
+</div>
+
+<div class="card">
+<h3>修改与编译</h3>
+<ol>
+<li>在工程浏览器中长按 smali 文件，选择「编辑」或「用 AI 分析」</li>
+<li>修改完成后保存</li>
+<li>点击「编译打包 APK」</li>
+<li>前台服务执行 smali→dex→重建→签名</li>
+<li>编译成功后可直接安装、分享或保存到下载目录</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>AI 配置</h3>
+<table>
+<tr><th>配置项</th><th>说明</th><th>示例</th></tr>
+<tr><td>API 地址</td><td>OpenAI 兼容端点</td><td>https://api.openai.com/v1</td></tr>
+<tr><td>API Key</td><td>密钥（本地免密钥服务可留空）</td><td>sk-xxxx</td></tr>
+<tr><td>模型名</td><td>模型标识</td><td>gpt-4o-mini / deepseek-chat</td></tr>
+<tr><td>温度</td><td>0~2，默认 0.7</td><td>0.7</td></tr>
+<tr><td>最大 tokens</td><td>回复长度上限</td><td>2048</td></tr>
+</table>
+<p>点击「测试连接」验证配置是否正确（无需先保存）。</p>
+</div>
+
+<div class="card">
+<h3>存储路径</h3>
+<div class="code-block">/storage/emulated/0/lookapks/
+├── projects/           # 反编译工程
+│   └── &lt;工程名&gt;/
+│       ├── smali/      # smali 源码
+│       ├── apk_src/    # 原始资源
+│       ├── original.apk
+│       ├── info.json
+│       ├── unpacked_dex/  # 脱壳提取的 dex
+│       └── output/     # 编译产物
+└── output/             # 全局输出</div>
+</div>
+</div>
+</section>
+
+<section id="license">
+<div class="container">
+<h2>官方许可协议</h2>
+<p class="subtitle">使用本软件前请仔细阅读</p>
+<div class="card">
+<h3>重要声明</h3>
+<p>使用本软件即表示您完全同意以下条款。</p>
+<h4>一、软件性质</h4>
+<p>ETC APK 工坊是一款安卓 APK 反编译、脱壳、修改与重打包工具，由 ETC 开发，徐可欣参与协作。本软件仅供学习、安全研究、以及修改您自己拥有或有合法授权的应用使用。</p>
+<h4>二、免责声明</h4>
+<ul>
+<li>本软件的反编译、脱壳、重打包等功能可能触犯部分软件厂商的用户协议、服务条款或相关法律法规。</li>
+<li>您使用本软件所产生的一切后果（包括但不限于法律纠纷、账号封禁、数据损失、设备损坏）均由您本人自行承担，开发者 ETC 不承担任何直接或间接责任。</li>
+<li>开发者 ETC 不对本软件的适用性、可靠性、完整性做任何明示或暗示的担保。本软件按"现状"提供，使用风险由用户承担。</li>
+<li>因使用本软件导致的任何第三方索赔，由用户自行负责解决并赔偿开发者因此遭受的损失。</li>
+</ul>
+<h4>三、禁止行为</h4>
+<ul>
+<li>禁止将本软件用于破解盗版软件、绕过付费/授权校验、窃取他人数据、入侵他人系统等非法行为。</li>
+<li>禁止对本软件进行倒卖、二次销售、付费转发或任何形式的商业牟利。</li>
+<li>禁止去除或修改本软件中的版权声明、作者信息及本协议内容。</li>
+<li>禁止将本软件用于任何违反当地法律法规的用途。</li>
+</ul>
+<h4>四、隐私说明</h4>
+<p>本软件不会收集您的任何个人信息。AI 对话内容仅发送至您在设置中自行配置的 AI 接口，开发者 ETC 无法获取或存储您的对话内容。</p>
+</div>
+</div>
+</section>
+
+<section id="mit">
+<div class="container">
+<h2>MIT 开源许可</h2>
+<p class="subtitle">本项目源码采用 MIT 许可证发布</p>
+<div class="card">
+<p>Copyright (c) 2026 ETC, 徐可欣</p>
+<p style="margin-top:12px">Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p style="margin-top:12px">The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p style="margin-top:12px">THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+</div>
+</div>
+</section>
+
+<footer>
+<div class="container">
+<p>ETC APK 工坊 v2.9 &nbsp;|&nbsp; Copyright © 2026 ETC, 徐可欣 &nbsp;|&nbsp; MIT License</p>
+<p style="margin-top:8px"><a href="https://github.com/ETQWFD/ET-APK-Workshop" target="_blank">GitHub</a> &nbsp;|&nbsp; <a href="https://github.com/ETQWFD/ET-APK-Workshop/releases" target="_blank">下载</a> &nbsp;|&nbsp; <a href="#manual">使用手册</a> &nbsp;|&nbsp; <a href="#license">许可协议</a></p>
+</div>
+</footer>
+</body>
+</html>
