@@ -27,11 +27,13 @@ public final class WallpaperManager {
         void onWallpaperChanged(Bitmap bmp);
     }
 
-    // 在线随机二次元壁纸 API（按优先级排列，国内可用）
+    // 在线随机二次元壁纸 API（按优先级排列，国内可用，均为公开动漫图库）
     private static final String[] APIS = {
+            "https://www.loliapi.com/acg/?type=pc",
             "https://api.anosu.top/img/",
             "https://www.dmoe.cc/random.php",
             "https://acg.toubiec.cn/random.php",
+            "https://api.ixiaowiai.cn/api/api.php",
     };
 
     // 本地兜底背景图
