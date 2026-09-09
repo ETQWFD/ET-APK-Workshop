@@ -20,12 +20,29 @@ import java.util.List;
  */
 public final class AiClient {
 
+    /** 消息附件：图片（data URL）或文本片段 */
+    public static final class Attachment {
+        public final String type;    // "image" 或 "text"
+        public final String name;    // 附件名
+        public final String content; // image: data:image/jpeg;base64,...; text: 内容文本
+        public Attachment(String type, String name, String content) {
+            this.type = type;
+            this.name = name;
+            this.content = content;
+        }
+    }
+
     public static final class Msg {
         public final String role;   // "system" / "user" / "assistant"
         public final String content;
+        public final List<Attachment> attachments;
         public Msg(String role, String content) {
+            this(role, content, null);
+        }
+        public Msg(String role, String content, List<Attachment> attachments) {
             this.role = role;
             this.content = content;
+            this.attachments = attachments;
         }
     }
 
@@ -56,7 +73,34 @@ public final class AiClient {
         for (Msg m : history) {
             JSONObject o = new JSONObject();
             o.put("role", m.role);
-            o.put("content", m.content);
+            if (m.attachments != null && !m.attachments.isEmpty()) {
+                // 多模态：content 为数组 [{type:text},{type:image_url}]
+                JSONArray contentArr = new JSONArray();
+                if (m.content != null && !m.content.isEmpty()) {
+                    JSONObject text = new JSONObject();
+                    text.put("type", "text");
+                    text.put("text", m.content);
+                    contentArr.put(text);
+                }
+                for (Attachment a : m.attachments) {
+                    if ("image".equals(a.type)) {
+                        JSONObject img = new JSONObject();
+                        img.put("type", "image_url");
+                        JSONObject imgUrl = new JSONObject();
+                        imgUrl.put("url", a.content);
+                        img.put("image_url", imgUrl);
+                        contentArr.put(img);
+                    } else {
+                        JSONObject text = new JSONObject();
+                        text.put("type", "text");
+                        text.put("text", (a.name != null ? "【" + a.name + "】\n" : "") + a.content);
+                        contentArr.put(text);
+                    }
+                }
+                o.put("content", contentArr);
+            } else {
+                o.put("content", m.content);
+            }
             msgs.put(o);
         }
         body.put("messages", msgs);
