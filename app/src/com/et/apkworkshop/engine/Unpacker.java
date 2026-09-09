@@ -31,16 +31,22 @@ public final class Unpacker {
 
     // 常见加固壳的特征 so 库
     private static final String[][] PACKER_SIGNATURES = {
-        {"360加固", "libjiagu.so", "libjiagu_art.so", "libjiagu_x86.so"},
-        {"腾讯乐固", "libshell-super.2019.so", "libBugly.so", "libshella.so"},
-        {"爱加密", "libexec.so", "libexecmain.so", "libexecservice.so"},
-        {"梆梆加固", "libsecexe.so", "libsecmain.so", "libSecShell.so"},
-        {"百度加固", "libbaiduprotect.so", "libbaiduprotect_x86.so"},
-        {"阿里聚安全", "libsgmain.so", "libsgsecuritybody.so", "libsgmiddletier.so"},
-        {"网易易盾", "libnesec.so", "libgdtdata.so"},
-        {"顶象", "libdxs.so", "libdexload.so"},
-        {"娜迦", "libchaosvmp.so", "libddog.so"},
+        {"360加固", "libjiagu.so", "libjiagu_art.so", "libjiagu_x86.so", "libjiagu_a64.so", "libjiagu_x86_64.so"},
+        {"腾讯乐固", "libshell-super.2019.so", "libBugly.so", "libshella.so", "libshella-2.28.6.11.so", "libshellx.so", "libdexhelper.so", "libtup.so"},
+        {"腾讯加固", "libtencentlegu.so", "liblegu.so", "libDexHelper.so", "libDexHelper-x86.so", "libshell.so"},
+        {"爱加密", "libexec.so", "libexecmain.so", "libexecservice.so", "libijiami.so", "libDexHelper.so"},
+        {"梆梆加固", "libsecexe.so", "libsecmain.so", "libSecShell.so", "libDexHelper.so", "libSecShell-x86.so"},
+        {"百度加固", "libbaiduprotect.so", "libbaiduprotect_x86.so", "libprotectClass.so"},
+        {"阿里聚安全", "libsgmain.so", "libsgsecuritybody.so", "libsgmiddletier.so", "libsgcrypto.so"},
+        {"网易易盾", "libnesec.so", "libgdtdata.so", "libnesec_x86.so", "libnesecex.so"},
+        {"顶象", "libdxs.so", "libdexload.so", "libdxs_x86.so"},
+        {"娜迦", "libchaosvmp.so", "libddog.so", "libchaosvmp_64.so"},
         {"几维安全", "libkwscmm.so", "libkwscrash.so"},
+        {"通付盾", "libegis.so", "libegis-x86.so", "libshell-x86.so"},
+        {"APKProtect", "libprotect.so", "libAPKProtect.so"},
+        {"瑞星加固", "librsprotect.so", "librsprotect_x86.so"},
+        {"盾牌加固", "libshield.so", "libshield_x86.so"},
+        {"爱加密V2", "libexecv2.so", "libexecmainv2.so"},
     };
 
     // 不需要深度扫描的扩展名（图片/音频/视频/字体/文本等不可能嵌入 dex）
@@ -134,10 +140,11 @@ public final class Unpacker {
                             File out = new File(unpackedDir, outName);
                             java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
                             try { fos.write(data, start, dexLen); } finally { fos.close(); }
-                            // 去重
+                            // 去重：按内容哈希（更精确，避免不同偏移提取同一 dex）
                             boolean dup = false;
+                            String hash = sha256Hex(out);
                             for (String existing : result.dexFiles) {
-                                if (new File(existing).length() == out.length()) { dup = true; break; }
+                                if (hash.equals(sha256Hex(new File(existing)))) { dup = true; break; }
                             }
                             if (!dup) {
                                 result.dexFiles.add(out.getAbsolutePath());
@@ -173,11 +180,35 @@ public final class Unpacker {
         sb.append("1. 若检测到加固壳，提取的 dex 可能是壳的加载器而非真实代码。\n");
         sb.append("2. 对于动态加密的壳，需要在 root 设备上运行时内存转储才能完全脱壳。\n");
         sb.append("3. 可尝试对提取的 dex 逐个反编译，找到包含真实 Activity 的那个。\n");
+        sb.append("4. 建议反编译顺序：classes.dex → classes2.dex → classes3.dex → 体积较大的 deepscan_*.dex。\n");
+        if (result.detectedPacker.equals("无")) {
+            sb.append("5. 未检测到加固壳特征：该 APK 可能是未加固或使用冷门壳，提取的 dex 通常可直接反编译使用。\n");
+        } else {
+            sb.append("5. 检测到 ").append(result.detectedPacker).append("：\n");
+            sb.append("   · 若壳将真实 dex 加密存放在 assets/ 或 lib/ 中，深度扫描已尝试提取；\n");
+            sb.append("   · 若仍无法还原真实代码，可尝试：免root运行内存转储、Shizuku 模式、或先用工具将 APK 脱壳后再分析。\n");
+        }
         FileOutputStream fos = new FileOutputStream(report);
         try { fos.write(sb.toString().getBytes("UTF-8")); } finally { fos.close(); }
 
         prog.on("脱壳完成: 提取 " + result.dexCount + " 个 dex, 检测到 " + result.detectedPacker);
         return result;
+    }
+
+    private static String sha256Hex(File f) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            java.io.FileInputStream in = new java.io.FileInputStream(f);
+            try {
+                byte[] buf = new byte[65536]; int n;
+                while ((n = in.read(buf)) > 0) md.update(buf, 0, n);
+            } finally { in.close(); }
+            StringBuilder sb = new StringBuilder();
+            for (byte b : md.digest()) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return String.valueOf(f.length());
+        }
     }
 
     private static void extractEntry(ZipFile zip, ZipEntry e, File out) throws Exception {
