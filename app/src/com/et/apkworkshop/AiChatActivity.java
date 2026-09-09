@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.ClipboardManager;
 import android.view.Gravity;
@@ -20,11 +23,24 @@ import com.et.apkworkshop.engine.AiClient;
 import com.et.apkworkshop.util.AppSettings;
 import com.et.apkworkshop.util.Ui;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class AiChatActivity extends Activity {
+    private static final int REQ_IMAGE = 2001;
+    private static final int REQ_FILE = 2002;
+    private static final int MAX_IMAGE_EDGE = 1568;
+    private static final int MAX_ATTACH_TEXT = 120000;
+    private static final int MAX_PKG_FILES = 40;
+
     private File contextFile;
     private String projectDir;
     private List<AiClient.Msg> history = new ArrayList<AiClient.Msg>();
@@ -33,6 +49,7 @@ public class AiChatActivity extends Activity {
     private EditText inputBox;
     private TextView ctxBar;
     private ProgressDialog sending;
+    private TextView attachBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +102,14 @@ public class AiChatActivity extends Activity {
         root.addView(chatList, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         LinearLayout inputRow = Ui.horizontal(this);
+        attachBtn = Ui.label(this, "＋", Ui.ACCENT, 20, true);
+        attachBtn.setGravity(Gravity.CENTER);
+        attachBtn.setPadding(Ui.dp(this, 12), Ui.dp(this, 8), Ui.dp(this, 12), Ui.dp(this, 8));
+        attachBtn.setBackground(Ui.rounded(Ui.CARD_OVERLAY, 10, this));
+        attachBtn.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { showAttachMenu(); }
+        });
+        inputRow.addView(attachBtn, lp(0, 0, 4, 0));
         inputBox = new EditText(this);
         inputBox.setHint("告诉 AI 你想怎么改…");
         inputBox.setHintTextColor(Ui.TEXT_DIM);
@@ -107,10 +132,11 @@ public class AiChatActivity extends Activity {
 
         setContentView(root);
         addAiMsg("你好，我是 ET APK 的 AI 助手。\n\n"
+                + "· 点击下方「＋」可上传图片、文本文件或 zip 压缩包给我分析\n"
                 + "· 点击上方文件栏把当前 smali 发给我分析\n"
                 + "· 直接告诉我想改的功能，我给出 smali 修改方案\n"
                 + "· 我的修改代码可用「应用修改」一键写回文件\n\n"
-                + "⚠ 请先在设置中配置 AI 接口。国内访问 OpenAI 官方地址需代理，推荐用兼容中转或本地服务。");
+                + "⚠ 请先在设置中配置 AI 接口。支持多模态（图片）的模型才能看图，压缩包会自动解压提取摘要。");
     }
 
     private LinearLayout.LayoutParams lp(int l, int t, int r, int b) {
@@ -138,6 +164,259 @@ public class AiChatActivity extends Activity {
         addUserMsg(msg);
         Ui.toast(this, "已发送 " + formatSize(contextFile.length()) + " 给 AI");
         sendToAi();
+    }
+
+    private void showAttachMenu() {
+        final String[] items = {"上传图片（截图/设计稿）", "上传文件（文本/源码）", "上传压缩包（zip）"};
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("发送附件给 AI")
+                .setItems(items, new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface d, int w) {
+                        if (w == 0) pickImage();
+                        else if (w == 1) pickFile("*/*", "选择文件");
+                        else pickFile("application/zip|application/x-zip-compressed|application/octet-stream", "选择 zip 压缩包");
+                    }
+                })
+                .setNegativeButton("取消", null).show();
+    }
+
+    private void pickImage() {
+        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+        i.setType("image/*");
+        try { startActivityForResult(Intent.createChooser(i, "选择图片"), REQ_IMAGE); }
+        catch (Exception e) { Ui.toast(this, "无法打开图片选择器"); }
+    }
+
+    private void pickFile(String mime, String title) {
+        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+        i.setType(mime);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        try { startActivityForResult(Intent.createChooser(i, title), REQ_FILE); }
+        catch (Exception e) { Ui.toast(this, "无法打开文件选择器"); }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        Uri uri = data.getData();
+        if (requestCode == REQ_IMAGE) {
+            handleImage(uri);
+        } else if (requestCode == REQ_FILE) {
+            handleFile(uri);
+        }
+    }
+
+    /** 图片：压缩为 JPEG data URL 发送给多模态 AI */
+    private void handleImage(final Uri uri) {
+        final ProgressDialog pd = new ProgressDialog(this);
+        pd.setMessage("处理图片…");
+        pd.setCancelable(false);
+        pd.show();
+        new Thread(new Runnable() {
+            @Override public void run() {
+                try {
+                    InputStream is = getContentResolver().openInputStream(uri);
+                    Bitmap bmp = BitmapFactory.decodeStream(is);
+                    if (is != null) is.close();
+                    if (bmp == null) { runOnUiThread(new Runnable() { @Override public void run() { pd.dismiss(); Ui.toast(AiChatActivity.this, "图片解析失败"); } }); return; }
+                    // 压缩到最大边 1568
+                    int w = bmp.getWidth(), h = bmp.getHeight();
+                    int max = Math.max(w, h);
+                    if (max > MAX_IMAGE_EDGE) {
+                        float scale = MAX_IMAGE_EDGE / (float) max;
+                        Bitmap scaled = Bitmap.createScaledBitmap(bmp, (int) (w * scale), (int) (h * scale), true);
+                        if (scaled != bmp) bmp.recycle();
+                        bmp = scaled;
+                    }
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    bmp.compress(Bitmap.CompressFormat.JPEG, 82, bos);
+                    bmp.recycle();
+                    final String dataUrl = "data:image/jpeg;base64," + android.util.Base64.encodeToString(bos.toByteArray(), android.util.Base64.NO_WRAP);
+                    runOnUiThread(new Runnable() {
+                        @Override public void run() {
+                            pd.dismiss();
+                            String text = inputBox.getText().toString().trim();
+                            inputBox.setText("");
+                            String prompt = text.isEmpty() ? "请分析这张图片的内容，并说明与 Android 逆向/修改相关的要点。" : text;
+                            List<AiClient.Attachment> atts = new ArrayList<AiClient.Attachment>();
+                            atts.add(new AiClient.Attachment("image", "image.jpg", dataUrl));
+                            addUserMsgWithAttachments(prompt, atts);
+                            sendToAi();
+                        }
+                    });
+                } catch (final Exception e) {
+                    runOnUiThread(new Runnable() { @Override public void run() { pd.dismiss(); Ui.toast(AiChatActivity.this, "图片处理失败: " + e.getMessage()); } });
+                }
+            }
+        }).start();
+    }
+
+    /** 文件/压缩包：文本文件读取内容，zip 解压提取摘要 */
+    private void handleFile(final Uri uri) {
+        final String name = queryName(uri);
+        final ProgressDialog pd = new ProgressDialog(this);
+        pd.setMessage("读取附件…");
+        pd.setCancelable(false);
+        pd.show();
+        new Thread(new Runnable() {
+            @Override public void run() {
+                try {
+                    File cache = new File(getCacheDir(), "attach_" + System.currentTimeMillis() + "_" + (name != null ? name : "file"));
+                    InputStream is = getContentResolver().openInputStream(uri);
+                    FileOutputStream fos = new FileOutputStream(cache);
+                    byte[] buf = new byte[65536]; int n;
+                    while ((n = is.read(buf)) > 0) fos.write(buf, 0, n);
+                    fos.close(); is.close();
+
+                    final String lower = cache.getName().toLowerCase();
+                    if (lower.endsWith(".zip") || lower.endsWith(".apk")) {
+                        final String summary = summarizePackage(cache);
+                        runOnUiThread(new Runnable() {
+                            @Override public void run() {
+                                pd.dismiss();
+                                String text = inputBox.getText().toString().trim();
+                                inputBox.setText("");
+                                String prompt = text.isEmpty()
+                                        ? ("我上传了一个压缩包 " + name + "，请根据文件结构分析它的用途、关键代码位置，并给出修改建议。")
+                                        : text;
+                                List<AiClient.Attachment> atts = new ArrayList<AiClient.Attachment>();
+                                atts.add(new AiClient.Attachment("text", name + " 内容摘要", summary));
+                                addUserMsgWithAttachments(prompt, atts);
+                                sendToAi();
+                            }
+                        });
+                    } else if (isTextFile(lower)) {
+                        final String content = readText(cache, MAX_ATTACH_TEXT);
+                        runOnUiThread(new Runnable() {
+                            @Override public void run() {
+                                pd.dismiss();
+                                String text = inputBox.getText().toString().trim();
+                                inputBox.setText("");
+                                String prompt = text.isEmpty()
+                                        ? ("请分析这个文件 " + name + " 的作用，并给出修改建议。\n文件内容：\n```\n" + content + "\n```")
+                                        : text + "\n\n文件 " + name + " 内容：\n```\n" + content + "\n```";
+                                List<AiClient.Attachment> atts = new ArrayList<AiClient.Attachment>();
+                                atts.add(new AiClient.Attachment("text", name, content));
+                                addUserMsgWithAttachments(prompt, atts);
+                                sendToAi();
+                            }
+                        });
+                    } else {
+                        runOnUiThread(new Runnable() {
+                            @Override public void run() {
+                                pd.dismiss();
+                                Ui.alert(AiChatActivity.this, "不支持的文件类型",
+                                        name + " 不是文本或 zip/apk 文件。\n请上传文本源码、图片或 zip 压缩包。");
+                            }
+                        });
+                    }
+                } catch (final Exception e) {
+                    runOnUiThread(new Runnable() { @Override public void run() { pd.dismiss(); Ui.toast(AiChatActivity.this, "读取附件失败: " + e.getMessage()); } });
+                }
+            }
+        }).start();
+    }
+
+    private String queryName(Uri uri) {
+        try {
+            android.database.Cursor c = getContentResolver().query(uri, null, null, null, null);
+            if (c != null) {
+                try {
+                    int idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                    if (idx >= 0 && c.moveToFirst()) return c.getString(idx);
+                } finally { c.close(); }
+            }
+            String path = uri.getPath();
+            if (path != null) {
+                int slash = path.lastIndexOf('/');
+                if (slash >= 0) return path.substring(slash + 1);
+            }
+        } catch (Exception ignored) {}
+        return "file";
+    }
+
+    private boolean isTextFile(String lower) {
+        return lower.endsWith(".smali") || lower.endsWith(".java") || lower.endsWith(".kt")
+                || lower.endsWith(".txt") || lower.endsWith(".json") || lower.endsWith(".xml")
+                || lower.endsWith(".html") || lower.endsWith(".js") || lower.endsWith(".py")
+                || lower.endsWith(".cpp") || lower.endsWith(".c") || lower.endsWith(".h")
+                || lower.endsWith(".md") || lower.endsWith(".log") || lower.endsWith(".properties")
+                || lower.endsWith(".ini") || lower.endsWith(".yml") || lower.endsWith(".yaml")
+                || lower.endsWith(".gradle") || lower.endsWith(".css") || lower.endsWith(".sh");
+    }
+
+    /** 解压 zip/apk，提取文件列表 + 关键文本内容摘要 */
+    private String summarizePackage(File zipFile) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== 压缩包结构摘要 ===\n");
+        sb.append("包名: ").append(zipFile.getName()).append(" (").append(formatSize(zipFile.length())).append(")\n\n");
+        try {
+            ZipFile zip = new ZipFile(zipFile);
+            try {
+                Enumeration<? extends ZipEntry> entries = zip.entries();
+                int count = 0, textShown = 0;
+                boolean hasManifest = false, hasDex = false, hasSmali = false;
+                while (entries.hasMoreElements()) {
+                    ZipEntry e = entries.nextElement();
+                    if (e.isDirectory()) continue;
+                    String en = e.getName();
+                    if (en.toLowerCase().endsWith("androidmanifest.xml")) hasManifest = true;
+                    if (en.toLowerCase().endsWith(".dex")) hasDex = true;
+                    if (en.toLowerCase().endsWith(".smali")) hasSmali = true;
+                    count++;
+                }
+                sb.append("文件总数: ").append(count).append("\n");
+                sb.append("包含 AndroidManifest.xml: ").append(hasManifest ? "是" : "否").append("\n");
+                sb.append("包含 dex 文件: ").append(hasDex ? "是" : "否").append("\n");
+                sb.append("包含 smali 源码: ").append(hasSmali ? "是" : "否").append("\n\n");
+
+                sb.append("=== 关键文件清单（前 ").append(MAX_PKG_FILES).append(" 个） ===\n");
+                entries = zip.entries();
+                int shown = 0;
+                while (entries.hasMoreElements() && shown < MAX_PKG_FILES) {
+                    ZipEntry e = entries.nextElement();
+                    if (e.isDirectory()) continue;
+                    sb.append("· ").append(e.getName()).append("  (").append(formatSize(e.getSize())).append(")\n");
+                    shown++;
+                }
+                if (count > MAX_PKG_FILES) sb.append("… 共 ").append(count).append(" 个文件\n");
+
+                // 提取几个关键文本文件内容（smali/资源）
+                sb.append("\n=== 文本内容抽样 ===\n");
+                entries = zip.entries();
+                int limit = 0;
+                while (entries.hasMoreElements() && limit < 3) {
+                    ZipEntry e = entries.nextElement();
+                    String en = e.getName().toLowerCase();
+                    if (e.isDirectory() || e.getSize() > 60000) continue;
+                    if (en.endsWith(".smali") || en.endsWith(".txt") || en.endsWith(".json")
+                            || en.endsWith(".md") || en.endsWith(".xml") || en.endsWith(".properties")) {
+                        InputStream is = zip.getInputStream(e);
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                        byte[] b = new byte[16384]; int n;
+                        while ((n = is.read(b)) > 0) bos.write(b, 0, n);
+                        is.close();
+                        String text = new String(bos.toByteArray(), "UTF-8");
+                        if (text.length() > 3000) text = text.substring(0, 3000) + "\n…(截断)";
+                        sb.append("\n--- ").append(e.getName()).append(" ---\n").append(text).append("\n");
+                        limit++;
+                    }
+                }
+                if (limit == 0) sb.append("（无可读文本文件，仅文件清单）\n");
+            } finally {
+                zip.close();
+            }
+        } catch (Exception e) {
+            sb.append("解压失败: ").append(e.getMessage()).append("\n");
+        }
+        return sb.toString();
+    }
+
+    private void addUserMsgWithAttachments(String text, List<AiClient.Attachment> atts) {
+        history.add(new AiClient.Msg("user", text, atts));
+        adapter.notifyDataSetChanged();
+        scrollBottom();
     }
 
     private void sendMessage() {
