@@ -65,9 +65,10 @@ public class MainActivity extends Activity {
         header.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = Ui.label(this, "ETC APK 工坊", Ui.PRIMARY, 22, true);
         header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        ImageView gear = new ImageView(this);
-        gear.setImageDrawable(Ui.roundedStroke(Ui.CARD2, Ui.BORDER, 12, this));
-        int sz = Ui.dp(this, 34);
+        TextView gear = Ui.label(this, "⚙", Ui.TEXT, 24, true);
+        gear.setGravity(Gravity.CENTER);
+        gear.setBackground(Ui.roundedStroke(Ui.CARD2, Ui.PRIMARY2, 12, this));
+        int sz = Ui.dp(this, 40);
         gear.setLayoutParams(new LinearLayout.LayoutParams(sz, sz));
         gear.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { startActivity(new Intent(MainActivity.this, SettingsActivity.class)); }
@@ -214,9 +215,9 @@ public class MainActivity extends Activity {
                 while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
             }
             String prefix = unpack ? "unpack_" : "proj_";
-            File projectDir = new File(projectsRoot, prefix + System.currentTimeMillis() % 100000);
-            if (!projectDir.mkdirs() && !projectDir.isDirectory()) {
-                Ui.toast(this, "无法创建工程目录，请检查存储权限");
+            File projectDir = Storage.resolveProjectDir(prefix + System.currentTimeMillis() % 100000);
+            if (!Storage.isUsableDir(projectDir)) {
+                Ui.toast(this, "无法创建工程目录，请检查存储空间");
                 return;
             }
             Intent i = new Intent(this, DecompileActivity.class);
