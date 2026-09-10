@@ -103,7 +103,7 @@ public class MainActivity extends Activity {
         });
         root.addView(unpackBtn, lp(0, 6, 0, 4));
 
-        root.addView(Ui.label(this, "工程保存在 /storage/emulated/0/lookapks/projects/", Ui.TEXT_DIM, 12, false), lp(2, 4, 0, 16));
+        root.addView(Ui.label(this, "工程目录: " + projectsRoot.getAbsolutePath(), Ui.TEXT_DIM, 12, false), lp(2, 4, 0, 16));
 
         root.addView(Ui.label(this, "最近工程", Ui.TEXT, 15, true), lp(2, 0, 0, 8));
         projectList = new ListView(this);
@@ -146,9 +146,10 @@ public class MainActivity extends Activity {
         if (!Storage.hasPermission(this)) {
             if (Build.VERSION.SDK_INT >= 30) {
                 new AlertDialog.Builder(this)
-                        .setTitle("需要存储权限")
-                        .setMessage("需要访问 /storage/emulated/0/lookapks/ 保存工程。\n请在设置中允许\"所有文件访问权限\"。")
-                        .setPositiveButton("去设置", new DialogInterface.OnClickListener() {
+                        .setTitle("可选：授予存储权限")
+                        .setMessage("不授权也能正常反编译/脱壳/编译（工程自动保存在应用私有目录）。\n"
+                                + "授权后可把工程保存到 /storage/emulated/0/lookapks/ 公共目录，方便直接查看文件。")
+                        .setPositiveButton("去授权", new DialogInterface.OnClickListener() {
                             @Override public void onClick(DialogInterface d, int w) {
                                 try {
                                     Intent i = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
@@ -158,7 +159,7 @@ public class MainActivity extends Activity {
                                     startActivityForResult(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION), REQ_MANAGE_STORAGE);
                                 }
                             }
-                        }).setNegativeButton("取消", null).show();
+                        }).setNegativeButton("暂不授权", null).show();
             } else if (Build.VERSION.SDK_INT >= 23) {
                 requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_STORAGE);
             }
