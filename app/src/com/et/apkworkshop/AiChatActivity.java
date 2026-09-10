@@ -102,32 +102,44 @@ public class AiChatActivity extends Activity {
         root.addView(chatList, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         LinearLayout inputRow = Ui.horizontal(this);
-        attachBtn = Ui.label(this, "＋", Ui.ACCENT, 20, true);
+        inputRow.setBackground(Ui.roundedStroke(Ui.CARD_OVERLAY, Ui.BORDER, 14, this));
+        int irp = Ui.dp(this, 6);
+        inputRow.setPadding(irp, irp, irp, irp);
+        attachBtn = Ui.label(this, "＋", Ui.ACCENT, 22, true);
         attachBtn.setGravity(Gravity.CENTER);
-        attachBtn.setPadding(Ui.dp(this, 12), Ui.dp(this, 8), Ui.dp(this, 12), Ui.dp(this, 8));
-        attachBtn.setBackground(Ui.rounded(Ui.CARD_OVERLAY, 10, this));
+        attachBtn.setPadding(Ui.dp(this, 14), Ui.dp(this, 8), Ui.dp(this, 14), Ui.dp(this, 8));
+        android.graphics.drawable.GradientDrawable attBg = Ui.roundedStroke(Ui.CARD2, Ui.ACCENT, 10, this);
+        attBg.setStroke(Ui.dp(this, 2), Ui.ACCENT);
+        attachBtn.setBackground(attBg);
         attachBtn.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { showAttachMenu(); }
         });
-        inputRow.addView(attachBtn, lp(0, 0, 4, 0));
+        inputRow.addView(attachBtn, lp(0, 0, 6, 0));
         inputBox = new EditText(this);
-        inputBox.setHint("告诉 AI 你想怎么改…");
-        inputBox.setHintTextColor(Ui.TEXT_DIM);
+        inputBox.setHint("输入你想让 AI 做的事…");
+        inputBox.setHintTextColor(Color.argb(210, 165, 175, 195));
         inputBox.setTextColor(Ui.TEXT);
-        inputBox.setTextSize(14);
+        inputBox.setTextSize(15);
         inputBox.setMaxLines(4);
-        inputBox.setBackground(Ui.roundedStroke(Ui.CARD_OVERLAY, Ui.BORDER, 10, this));
+        android.graphics.drawable.GradientDrawable ibBg = Ui.roundedStroke(Ui.CARD2, Ui.PRIMARY2, 12, this);
+        ibBg.setStroke(Ui.dp(this, 2), Color.argb(150, 34, 211, 238));
+        inputBox.setBackground(ibBg);
+        inputBox.setCursorVisible(true);
         int pad = Ui.dp(this, 10);
         inputBox.setPadding(pad, pad, pad, pad);
         inputRow.addView(inputBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        TextView sendBtn = Ui.label(this, "发送", Ui.PRIMARY, 15, true);
+        TextView sendBtn = Ui.label(this, "发送", Color.WHITE, 16, true);
         sendBtn.setGravity(Gravity.CENTER);
-        sendBtn.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 10));
-        sendBtn.setBackground(Ui.rounded(Ui.CARD_OVERLAY, 10, this));
+        sendBtn.setPadding(Ui.dp(this, 16), Ui.dp(this, 10), Ui.dp(this, 16), Ui.dp(this, 10));
+        android.graphics.drawable.GradientDrawable sBg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Ui.PRIMARY, Ui.PRIMARY2});
+        sBg.setCornerRadius(Ui.dp(this, 12));
+        sendBtn.setBackground(sBg);
         sendBtn.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { sendMessage(); }
         });
-        inputRow.addView(sendBtn, lp(4, 0, 0, 0));
+        inputRow.addView(sendBtn, lp(6, 0, 0, 0));
         root.addView(inputRow, lp(0, 6, 0, 0));
 
         setContentView(root);
