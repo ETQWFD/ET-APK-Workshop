@@ -67,6 +67,39 @@ public final class Storage {
         return f;
     }
 
+    /**
+     * 解析一个可用的工程目录：优先公共 lookapks/projects 下，
+     * 实际写入测试失败则自动回退到应用私有目录（无需权限）。
+     * 返回的目录保证已存在且实际可写（除非设备存储本身损坏）。
+     */
+    public static File resolveProjectDir(String name) {
+        if (name == null || name.isEmpty()) name = "proj_" + System.currentTimeMillis() % 100000;
+        // 去掉路径分隔符，只保留目录名
+        name = new File(name).getName();
+        File dir = new File(getProjectsDir(), name);
+        if (ensureDir(dir) && isWritable(dir)) return dir;
+        // 回退：应用私有目录（外部存储私有区，无需任何权限）
+        Context ctx = AppContext.get();
+        File fallbackRoot;
+        if (ctx != null && ctx.getExternalFilesDir(null) != null) {
+            fallbackRoot = new File(ctx.getExternalFilesDir(null), "projects");
+        } else {
+            fallbackRoot = new File(System.getProperty("java.io.tmpdir"), "projects");
+        }
+        ensureDir(fallbackRoot);
+        File fd = new File(fallbackRoot, name);
+        if (ensureDir(fd) && isWritable(fd)) return fd;
+        // 最后兜底：缓存目录
+        File cd = new File(ctx != null ? ctx.getCacheDir() : new File(System.getProperty("java.io.tmpdir")), name);
+        ensureDir(cd);
+        return cd;
+    }
+
+    /** 目录是否真正可用（存在 + 实际可写） */
+    public static boolean isUsableDir(File dir) {
+        return dir != null && ensureDir(dir) && isWritable(dir);
+    }
+
     /** 确保目录存在，返回是否成功（已存在也算成功） */
     public static boolean ensureDir(File dir) {
         if (dir == null) return false;
