@@ -81,15 +81,14 @@ public class WorkService extends Service {
         ws.workType = action;
         ws.projectDir = projectDir;
 
-        // 预检：确保工程目录可写，不可写则尝试回退到应用私有目录
+        // 预检：确保工程目录真正可用（实际写入测试），失败则回退应用私有目录
         if (projectDir != null) {
             File dir = new File(projectDir);
-            if (!dir.exists()) dir.mkdirs();
-            if (!dir.exists() || !dir.canWrite()) {
-                File fallback = new File(Storage.getProjectsDir(), dir.getName());
-                if (fallback.mkdirs() && fallback.canWrite()) {
-                    ws.projectDir = fallback.getAbsolutePath();
-                }
+            if (Storage.isUsableDir(dir)) {
+                ws.projectDir = dir.getAbsolutePath();
+            } else {
+                File fb = Storage.resolveProjectDir(dir.getName());
+                ws.projectDir = fb.getAbsolutePath();
             }
         }
 
