@@ -70,11 +70,36 @@ public final class ApkEngine {
         }
         info.dexNames = dexList;
 
-        // 逐个反编译
-        for (int i = 0; i < dexList.size(); i++) {
-            File dexFile = new File(info.apkSrcDir(), dexList.get(i));
-            File smaliDir = info.smaliDir(i);
-            SmaliWorker.disassemble(dexFile, smaliDir, info.apiLevel, prog);
+        // 逐个反编译（多 dex 并行，大幅提升多 dex APK 速度）
+        final int n = dexList.size();
+        final Exception[] threadErr = new Exception[1];
+        final Progress fprog = prog;
+        if (n > 1) {
+            java.util.concurrent.ExecutorService pool =
+                    java.util.concurrent.Executors.newFixedThreadPool(Math.min(n, 3));
+            for (int i = 0; i < n; i++) {
+                final int idx = i;
+                final File dexFile = new File(info.apkSrcDir(), dexList.get(i));
+                pool.execute(new Runnable() {
+                    @Override public void run() {
+                        try {
+                            SmaliWorker.disassemble(dexFile, info.smaliDir(idx), info.apiLevel, fprog);
+                        } catch (Exception e) {
+                            threadErr[0] = e;
+                        }
+                    }
+                });
+            }
+            pool.shutdown();
+            try {
+                pool.awaitTermination(30, java.util.concurrent.TimeUnit.MINUTES);
+            } catch (InterruptedException ie) {
+                throw new Exception("反编译被中断", ie);
+            }
+            if (threadErr[0] != null) throw threadErr[0];
+        } else {
+            File dexFile = new File(info.apkSrcDir(), dexList.get(0));
+            SmaliWorker.disassemble(dexFile, info.smaliDir(0), info.apiLevel, fprog);
         }
 
         info.save();
