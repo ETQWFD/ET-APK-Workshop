@@ -28,8 +28,9 @@ public final class Ui {
     public static final int TEXT_DIM = Color.rgb(140, 148, 165);
     public static final int DANGER   = Color.rgb(248, 113, 113);
     public static final int BORDER   = Color.rgb(50, 56, 75);
-    public static final int BG_OVERLAY = Color.argb(215, 10, 12, 20);
-    public static final int CARD_OVERLAY = Color.argb(235, 20, 24, 38);
+    // 半透明遮罩：alpha 降低让二次元壁纸更清晰显现（但保证文字可读）
+    public static final int BG_OVERLAY = Color.argb(168, 8, 10, 18);
+    public static final int CARD_OVERLAY = Color.argb(196, 16, 20, 32);
 
     private static final int[] BG_RES_IDS = {
             com.et.apkworkshop.R.drawable.bg_1,
@@ -118,9 +119,12 @@ public final class Ui {
         Button b = new Button(c);
         b.setText(text);
         b.setTextColor(textColor);
+        b.setTypeface(Typeface.DEFAULT_BOLD);
         b.setTextSize(14);
         b.setAllCaps(false);
-        b.setBackground(roundedStroke(CARD2, BORDER, 12, c));
+        GradientDrawable g = roundedStroke(CARD2, textColor, 12, c);
+        g.setStroke(dp(c, 2), textColor);
+        b.setBackground(g);
         return b;
     }
 
@@ -136,11 +140,14 @@ public final class Ui {
     public static EditText input(Context c, String hint) {
         EditText e = new EditText(c);
         e.setHint(hint);
-        e.setHintTextColor(TEXT_DIM);
+        e.setHintTextColor(Color.argb(200, 160, 172, 190));
         e.setTextColor(TEXT);
         e.setTextSize(15);
         e.setSingleLine(true);
-        e.setBackground(roundedStroke(CARD2, BORDER, 10, c));
+        GradientDrawable g = roundedStroke(CARD2, PRIMARY2, 10, c);
+        g.setStroke(dp(c, 2), Color.argb(120, 34, 211, 238));
+        e.setBackground(g);
+        e.setCursorVisible(true);
         int pad = dp(c, 12);
         e.setPadding(pad, pad, pad, pad);
         return e;
