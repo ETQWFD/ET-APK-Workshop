@@ -28,12 +28,18 @@ public final class WallpaperManager {
     }
 
     // 在线随机二次元壁纸 API（按优先级排列，国内可用，均为公开动漫图库）
+    // 部分 API 返回图片流，部分返回 JSON（其中含图片 URL），均已兼容
     private static final String[] APIS = {
             "https://www.loliapi.com/acg/?type=pc",
             "https://api.anosu.top/img/",
             "https://www.dmoe.cc/random.php",
             "https://acg.toubiec.cn/random.php",
             "https://api.ixiaowiai.cn/api/api.php",
+            "https://api.vvhan.com/api/acgimg?type=pc",
+            "https://t.alcy.cc/pc",
+            "https://api.likepoems.com/img/pc",
+            "https://img.paulzzh.tech/touhou/random",
+            "https://api.btstu.cn/sjbz/api.php?lx=dongman&format=json",
     };
 
     // 本地兜底背景图
@@ -43,7 +49,7 @@ public final class WallpaperManager {
             com.et.apkworkshop.R.drawable.bg_3,
     };
 
-    private static final long ROTATE_INTERVAL = 60000; // 60秒（每分钟更换，次次不同）
+    private static final long ROTATE_INTERVAL = 6000; // 6秒（用户要求每 6 秒自动更换）
     private static final int MAX_HISTORY = 50;
 
     private static WallpaperManager instance;
@@ -130,21 +136,43 @@ public final class WallpaperManager {
                 conn.setConnectTimeout(8000);
                 conn.setReadTimeout(10000);
                 conn.setInstanceFollowRedirects(true);
-                conn.setRequestProperty("User-Agent", "ET-APK-Workshop");
+                conn.setRequestProperty("User-Agent", "ET-APK-Workshop/2.29");
+                conn.setRequestProperty("Accept", "image/*, application/json, */*");
                 int code = conn.getResponseCode();
                 if (code == 200) {
                     String url = conn.getURL().toString();
-                    // 去重：最近 20 张不重复
-                    if (recentUrls.contains(url)) {
+                    String contentType = conn.getContentType();
+                    if (contentType == null) contentType = "";
+                    Bitmap bmp = null;
+                    String imgKey = null;
+                    if (contentType.contains("json")) {
+                        // JSON 接口：读取响应，解析出图片 URL 再加载
+                        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                        try (InputStream is = conn.getInputStream()) {
+                            byte[] buf = new byte[8192]; int n;
+                            while ((n = is.read(buf)) > 0) bos.write(buf, 0, n);
+                        }
                         conn.disconnect();
-                        continue;
+                        String json = new String(bos.toByteArray(), "UTF-8");
+                        String imgUrl = extractImageUrl(json);
+                        if (imgUrl != null) {
+                            imgKey = imgUrl;
+                            bmp = loadFromUrl(imgUrl);
+                        }
+                    } else {
+                        // 直接返回图片流
+                        try (InputStream is = conn.getInputStream()) {
+                            bmp = BitmapFactory.decodeStream(is);
+                        }
+                        conn.disconnect();
+                        imgKey = url;
                     }
-                    InputStream is = conn.getInputStream();
-                    Bitmap bmp = BitmapFactory.decodeStream(is);
-                    is.close();
-                    conn.disconnect();
                     if (bmp != null) {
-                        recentUrls.add(url);
+                        if (recentUrls.contains(imgKey)) {
+                            // 同源图片刚刚用过，继续轮询其他源
+                            continue;
+                        }
+                        recentUrls.add(imgKey);
                         if (recentUrls.size() > MAX_HISTORY) {
                             String first = recentUrls.iterator().next();
                             recentUrls.remove(first);
@@ -156,6 +184,51 @@ public final class WallpaperManager {
                 }
             } catch (Exception ignored) {}
         }
+        return null;
+    }
+
+    /** 从 JSON 响应中提取图片 URL（支持常见字段 img/url/pic/wallpaper/data 等） */
+    private static String extractImageUrl(String json) {
+        if (json == null || json.isEmpty()) return null;
+        String[] keys = {"\"img\"", "\"url\"", "\"pic\"", "\"wallpaper\"", "\"image\"", "\"data\"", "\"src\""};
+        for (String k : keys) {
+            int idx = json.indexOf(k);
+            if (idx >= 0) {
+                int s = json.indexOf('"', idx + k.length() + 1);
+                if (s < 0) s = json.indexOf(':', idx + k.length());
+                if (s >= 0) {
+                    int e = json.indexOf('"', s + 1);
+                    if (e > s) {
+                        String v = json.substring(s + 1, e);
+                        if (v.startsWith("http")) return v;
+                        // 可能是 https:\/\/ 转义
+                        v = v.replace("\\/", "/");
+                        if (v.startsWith("http")) return v;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** 从 URL 加载图片 */
+    private static Bitmap loadFromUrl(String imgUrl) {
+        try {
+            HttpURLConnection c = (HttpURLConnection) new URL(imgUrl).openConnection();
+            c.setConnectTimeout(8000);
+            c.setReadTimeout(10000);
+            c.setInstanceFollowRedirects(true);
+            c.setRequestProperty("User-Agent", "ET-APK-Workshop/2.29");
+            c.setRequestProperty("Referer", "https://www.bing.com/");
+            int code = c.getResponseCode();
+            if (code == 200) {
+                try (InputStream is = c.getInputStream()) {
+                    return BitmapFactory.decodeStream(is);
+                }
+            } else {
+                c.disconnect();
+            }
+        } catch (Exception ignored) {}
         return null;
     }
 
