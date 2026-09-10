@@ -88,6 +88,8 @@ public final class Unpacker {
         if (!unpackedDir.exists()) unpackedDir.mkdirs();
 
         prog.on("扫描 APK 结构…");
+        // 内容哈希去重缓存：避免对每个新 dex 重复计算全部已有 dex 的哈希
+        java.util.Map<String, File> hashIndex = new java.util.HashMap<String, File>();
         ZipFile zip = new ZipFile(apkFile);
         try {
             Enumeration<? extends ZipEntry> entries = zip.entries();
@@ -117,6 +119,7 @@ public final class Unpacker {
                     extractEntry(zip, e, out);
                     result.dexFiles.add(out.getAbsolutePath());
                     result.dexCount++;
+                    hashIndex.put(sha256Hex(out), out);
                     prog.on("提取 dex: " + name);
                 }
 
@@ -140,18 +143,15 @@ public final class Unpacker {
                             File out = new File(unpackedDir, outName);
                             java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
                             try { fos.write(data, start, dexLen); } finally { fos.close(); }
-                            // 去重：按内容哈希（更精确，避免不同偏移提取同一 dex）
-                            boolean dup = false;
+                            // 去重：按内容哈希（缓存，O(1) 查重，避免重复读文件）
                             String hash = sha256Hex(out);
-                            for (String existing : result.dexFiles) {
-                                if (hash.equals(sha256Hex(new File(existing)))) { dup = true; break; }
-                            }
-                            if (!dup) {
+                            if (hashIndex.containsKey(hash)) {
+                                out.delete();
+                            } else {
+                                hashIndex.put(hash, out);
                                 result.dexFiles.add(out.getAbsolutePath());
                                 result.dexCount++;
                                 prog.on("深度扫描发现 dex: " + name + " @offset " + start);
-                            } else {
-                                out.delete();
                             }
                         }
                     } catch (Exception ex) {
