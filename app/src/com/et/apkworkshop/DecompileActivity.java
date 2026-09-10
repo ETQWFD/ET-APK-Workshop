@@ -115,8 +115,9 @@ public class DecompileActivity extends Activity {
             } else if (ws.isDone()) {
                 progressBar.setProgress(100);
                 statusText.setText("完成");
+                final String actualDir = ws.projectDir != null ? ws.projectDir : projectDir;
                 appendLog("\n[完成] " + ws.message);
-                appendLog("工程目录: " + projectDir);
+                appendLog("工程目录: " + actualDir);
                 // 延迟跳转，让用户看到完成状态
                 handler.postDelayed(new Runnable() {
                     @Override public void run() {
@@ -124,13 +125,13 @@ public class DecompileActivity extends Activity {
                         if (unpackMode) {
                             try {
                                 com.et.apkworkshop.engine.ProjectInfo info = new com.et.apkworkshop.engine.ProjectInfo();
-                                info.projectDir = new File(projectDir);
+                                info.projectDir = new File(actualDir);
                                 info.name = new File(apkPath).getName();
                                 info.created = System.currentTimeMillis();
                                 info.apiLevel = 34;
                                 info.dexNames = new java.util.ArrayList<String>();
                                 // 扫描 unpacked_dex 目录
-                                File unpacked = new File(projectDir, "unpacked_dex");
+                                File unpacked = new File(actualDir, "unpacked_dex");
                                 if (unpacked.exists()) {
                                     File[] dexes = unpacked.listFiles();
                                     if (dexes != null) for (File d : dexes) if (d.getName().endsWith(".dex")) info.dexNames.add(d.getName());
@@ -140,7 +141,7 @@ public class DecompileActivity extends Activity {
                             } catch (Exception ignored) {}
                         }
                         Intent i = new Intent(DecompileActivity.this, ProjectActivity.class);
-                        i.putExtra("project_dir", projectDir);
+                        i.putExtra("project_dir", actualDir);
                         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         startActivity(i);
                         finish();
