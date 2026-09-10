@@ -126,8 +126,23 @@ public final class AppUpdate {
 
             ReleaseInfo r = new ReleaseInfo();
             r.title = decodeHtml(extractTag(entry, "<title>", "</title>"));
-            int sp = r.title.indexOf(' ');
-            r.tagName = sp > 0 ? r.title.substring(0, sp) : r.title;
+            // tag 优先从 release 链接提取（/releases/tag/v2.19），避免 title 含产品名导致误解析
+            int tagIdx = entry.indexOf("/releases/tag/");
+            if (tagIdx >= 0) {
+                int tagStart = tagIdx + "/releases/tag/".length();
+                int tagEnd = entry.indexOf('"', tagStart);
+                int ltEnd = entry.indexOf('<', tagStart);
+                int bound = -1;
+                if (tagEnd > 0 && ltEnd > 0) bound = Math.min(tagEnd, ltEnd);
+                else if (tagEnd > 0) bound = tagEnd;
+                else if (ltEnd > 0) bound = ltEnd;
+                if (bound > tagStart) r.tagName = entry.substring(tagStart, bound).trim();
+            }
+            if (r.tagName == null || r.tagName.isEmpty()) {
+                // 回退：从 title 找 v 前缀或数字开头的 token
+                int sp = r.title.indexOf(' ');
+                r.tagName = sp > 0 ? r.title.substring(0, sp) : r.title;
+            }
             if (r.tagName.isEmpty()) r.tagName = r.title;
             // 只认 v 开头或数字开头的版本 tag
             if (!r.tagName.startsWith("v") && !r.tagName.startsWith("V")
